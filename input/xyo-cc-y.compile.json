@@ -1,0 +1,46 @@
+{
+	"project": "xyo-cc-y",
+	"type": "exe",
+	"defines": [
+		"_CRT_SECURE_NO_WARNINGS",
+		"XYO_MANAGEDMEMORY_NO_VERSION",
+		"XYO_DATASTRUCTURES_NO_VERSION",
+		"XYO_MULTITHREADING_NO_VERSION",
+		"XYO_ENCODING_NO_VERSION",
+		"XYO_SYSTEM_NO_VERSION",
+		"XYO_FILEJSON_NO_VERSION",
+		"XYO_CPPCOMPILERCOMMANDDRIVER_NO_VERSION",
+		"XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION_NO_VERSION"
+	],
+	"includePath": [
+		"source",
+		"../xyo-managed-memory/source",
+		"../xyo-data-structures/source",
+		"../xyo-multithreading/source",
+		"../xyo-encoding/source",
+		"../xyo-system/source",
+		"../file-json/source"
+	],
+	"cppSource": [
+		"source/XYO/CPPCompilerCommandDriver.Application.Amalgam.cpp",
+		"../xyo-managed-memory/source/XYO/ManagedMemory.Amalgam.cpp",
+		"../xyo-data-structures/source/XYO/DataStructures.Amalgam.cpp",
+		"../xyo-multithreading/source/XYO/Multithreading.Amalgam.cpp",
+		"../xyo-encoding/source/XYO/Encoding.Amalgam.cpp",
+		"../xyo-system/source/XYO/System.Amalgam.cpp",
+		"../file-json/source/XYO/FileJSON.Amalgam.cpp"
+	],
+	"resources": {
+		"defines":[
+			"XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION_NO_VERSION"
+		],
+		"includePath":[
+			"source",
+			"../xyo-managed-memory/source"
+		],
+		"rcSource":[
+			"source/XYO/CPPCompilerCommandDriver.Application/Application.rc"
+		]
+	},
+	"crt": "static"
+}

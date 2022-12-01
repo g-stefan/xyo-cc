@@ -1,0 +1,11 @@
+// C++ Compiler Command Driver
+// Copyright (c) 2022 Grigore Stefan <g_stefan@yahoo.com>
+// MIT License (MIT) <http://opensource.org/licenses/MIT>
+// SPDX-FileCopyrightText: 2022 Grigore Stefan <g_stefan@yahoo.com>
+// SPDX-License-Identifier: MIT
+
+#include <XYO/CPPCompilerCommandDriver/Library.rh>
+#include <XYO/CPPCompilerCommandDriver/Copyright.rh>
+#include <XYO/CPPCompilerCommandDriver/Version.rh>
+
+XYO_APPLICATION_VERSION_INFO(XYO_CPPCOMPILERCOMMANDDRIVER,"xyo-cc.dll","C++ Compiler Command Driver")

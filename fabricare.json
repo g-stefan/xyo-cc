@@ -1,0 +1,42 @@
+{
+	"solution" : {
+		"name" : "xyo-cc",
+		"type" : "xyo-cpp-solution",
+		"projects" : [
+			{
+				"name" : "xyo-cc.library",
+				"type" : "xyo-cpp-project",
+				"make" : "lib-and-dll",
+				"SPDX-License-Identifier": "MIT",
+				"sourcePath" : "XYO/CPPCompilerCommandDriver",
+				"dependency" : [
+					"file-json"
+				]
+			},
+			{
+				"name" : "xyo-cc.application",
+				"type" : "xyo-cpp-project",
+				"make" : "lib",
+				"SPDX-License-Identifier": "MIT",
+				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
+				"dependency" : [
+					"xyo-cc.library"
+				],
+				"defines" : [
+					"XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION_LIBRARY"
+				],
+				"linkVersion" : "xyo-cc"
+			},
+			{
+				"name" : "xyo-cc",
+				"type" : "xyo-cpp-project",
+				"make" : "exe",
+				"SPDX-License-Identifier": "MIT",
+				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
+				"dependency" : [
+					"xyo-cc.library"
+				]
+			}
+		]
+	}
+}
