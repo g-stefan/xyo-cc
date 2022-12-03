@@ -897,7 +897,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				return 1;
 			};
 			if (cSource.length() > 0) {
-				if (compiler->makeCToExe(
+				if (!compiler->makeCToExe(
 				        projectName,
 				        outputBinPath,
 				        tempPath,
