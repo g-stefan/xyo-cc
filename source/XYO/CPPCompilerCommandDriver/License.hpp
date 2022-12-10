@@ -13,8 +13,7 @@
 
 namespace XYO::CPPCompilerCommandDriver::License {
 
-	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *licenseHeader();
-	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *licenseBody();
+	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *license();
 	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *shortLicense();
 
 };

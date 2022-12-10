@@ -16,7 +16,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 	void Application::showUsage() {
 		printf("C++ Compiler Command Driver\n");
 		showVersion();
-		printf("%s\n\n", CPPCompilerCommandDriver::Application::Copyright::fullCopyright());
+		printf("%s\n\n", CPPCompilerCommandDriver::Application::Copyright::copyright());
 
 		printf("%s",
 		       "options:\n"
@@ -59,7 +59,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 	};
 
 	void Application::showLicense() {
-		printf("%s%s", CPPCompilerCommandDriver::Application::License::licenseHeader(), CPPCompilerCommandDriver::Application::License::licenseBody());
+		printf("%s", CPPCompilerCommandDriver::Application::License::license());
 	};
 
 	void Application::showVersion() {

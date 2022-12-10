@@ -17,7 +17,6 @@ namespace XYO::CPPCompilerCommandDriver::Copyright {
 	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *publisher();
 	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *company();
 	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *contact();
-	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *fullCopyright();
 
 };
 

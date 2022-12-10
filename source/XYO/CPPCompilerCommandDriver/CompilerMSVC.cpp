@@ -27,14 +27,14 @@ namespace XYO::CPPCompilerCommandDriver {
 		int digits = 0;
 		do {
 			indexLn /= 10;
-			digits++; 
+			digits++;
 		} while (indexLn != 0);
 		char strIndex[32];
 		char strProcess[32];
-		strProcess[0]='%';
-		strProcess[1]='0';
+		strProcess[0] = '%';
+		strProcess[1] = '0';
 		sprintf(&strProcess[2], "%d", digits);
-		strcat(strProcess,"d");
+		strcat(strProcess, "d");
 		sprintf(strIndex, strProcess, index);
 
 		options = filterOptions(options);
