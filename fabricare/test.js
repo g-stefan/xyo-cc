@@ -7,6 +7,8 @@ if(Project.name!="xyo-cc"){
 	return;
 };
 
+messageAction("test");
+
 Shell.mkdirRecursivelyIfNotExists("output/test");
 Shell.mkdirRecursivelyIfNotExists("temp");
 
