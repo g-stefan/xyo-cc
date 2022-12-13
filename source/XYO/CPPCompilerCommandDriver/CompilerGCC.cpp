@@ -128,7 +128,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		content << " -c -o \"" << objFile << "\"";
 		content << " \"" << cppFile << "\"";
 
-		String cmdFile = String::replace(objFile, ".cpp.obj", ".cpp2obj");
+		String cmdFile = String::replace(objFile, ".cpp.o", ".cpp2o");
 		Shell::filePutContents(cmdFile, content);
 		cmd << " @" << cmdFile;
 
@@ -939,7 +939,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		content << " -c -o \"" << objFile << "\"";
 		content << " \"" << cFile << "\"";
 
-		String cmdFile = String::replace(objFile, ".c.obj", ".c2obj");
+		String cmdFile = String::replace(objFile, ".c.o", ".c2o");
 		Shell::filePutContents(cmdFile, content);
 		cmd << " @" << cmdFile;
 
