@@ -4,14 +4,15 @@
 		"type" : "xyo-cpp",
 		"projects" : [
 			{
-				"name" : "xyo-cc.library",
+				"name" : "xyo-cc",
 				"type" : "xyo-cpp",
 				"make" : "lib-and-dll",
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver",
 				"dependency" : [
 					"file-json"
-				]
+				],
+				"versionName" : "xyo-cc.library"
 			},
 			{
 				"name" : "xyo-cc.application",
@@ -34,7 +35,7 @@
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
 				"dependency" : [
-					"xyo-cc.library"
+					"xyo-cc"
 				]
 			}
 		]
