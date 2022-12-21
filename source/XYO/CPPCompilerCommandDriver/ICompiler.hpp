@@ -33,11 +33,11 @@ namespace XYO::CPPCompilerCommandDriver {
 
 			virtual String objFilename(
 			    const String &project,
-			    int index,
-			    int indexLn,
 			    const String &fileName,
 			    const String &tmpPath,
-			    int options) = 0;
+			    int options,
+			    int index,
+			    int indexLn) = 0;
 
 			virtual bool cppToObj(
 			    int options,
@@ -45,6 +45,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			    String objFile,
 			    TDynamicArray<String> &cppDefine,
 			    TDynamicArray<String> &incPath,
+			    int index,
+			    int indexLn,
 			    bool echoCmd) = 0;
 
 			virtual bool makeObjToLib(
@@ -137,6 +139,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			    int options,
 			    TDynamicArray<String> &cDefine,
 			    TDynamicArray<String> &incPath,
+			    int index,
+			    int indexLn,
 			    bool echoCmd) = 0;
 
 			virtual bool makeCToLib(

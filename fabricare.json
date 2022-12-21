@@ -31,7 +31,7 @@
 			{
 				"name" : "xyo-cc",
 				"type" : "xyo-cpp",
-				"make" : "exe",
+				"make" : "exe.static",
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
 				"dependency" : [

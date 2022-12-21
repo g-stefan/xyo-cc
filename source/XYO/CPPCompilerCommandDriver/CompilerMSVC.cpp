@@ -18,11 +18,11 @@ namespace XYO::CPPCompilerCommandDriver {
 
 	String CompilerMSVC::objFilename(
 	    const String &project,
-	    int index,
-	    int indexLn,
 	    const String &fileName,
 	    const String &tmpPath,
-	    int options) {
+	    int options,
+	    int index,
+	    int indexLn) {
 
 		int digits = 0;
 		do {
@@ -74,6 +74,8 @@ namespace XYO::CPPCompilerCommandDriver {
 	    String objFile,
 	    TDynamicArray<String> &cppDefine,
 	    TDynamicArray<String> &incPath,
+	    int index,
+	    int indexLn,
 	    bool echoCmd) {
 		String cmd;
 		String content;
@@ -151,7 +153,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		cmd << " @" << cmdFile;
 
 		if (echoCmd) {
-			printf("%s\n", cmd.value());
+			printf("[%d/%d] %s\n", index, indexLn, cmd.value());
 		};
 		return (Shell::system(cmd) == 0);
 	};
@@ -517,6 +519,8 @@ namespace XYO::CPPCompilerCommandDriver {
 				int options;
 				TDynamicArray<String> incPath;
 				TDynamicArray<String> cppDefine;
+				int index;
+				int indexLn;
 				bool echoCmd;
 				CompilerMSVC *super;
 		};
@@ -543,6 +547,8 @@ namespace XYO::CPPCompilerCommandDriver {
 				(target->index(k)) = (source->index(k)).value();
 			};
 
+			retV->index = value.index;
+			retV->indexLn = value.indexLn;
 			retV->echoCmd = value.echoCmd;
 			retV->super = value.super;
 			return retV;
@@ -558,6 +564,8 @@ namespace XYO::CPPCompilerCommandDriver {
 				    parameter->objFile,
 				    parameter->cppDefine,
 				    parameter->incPath,
+				    parameter->index,
+				    parameter->indexLn,
 				    parameter->echoCmd);
 			};
 			return retV;
@@ -612,7 +620,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		};
 
 		for (k = 0; k < cppFiles.length(); ++k) {
-			objFiles[k] = objFilename(projectName, (k + 1), cppFiles.length(), cppFiles[k], tmpPath, options);
+			objFiles[k] = objFilename(projectName, cppFiles[k], tmpPath, options, (k + 1), cppFiles.length());
 			cppFilesTime[k].getLastWriteTime(cppFiles[k]);
 			objFilesTime[k].getLastWriteTime(objFiles[k]);
 		};
@@ -648,6 +656,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			for (m = 0; m < cppDefine.length(); ++m) {
 				parameter->cppDefine[m] = cppDefine[m];
 			};
+			parameter->index = (k + 1);
+			parameter->indexLn = cppFiles.length();
 			parameter->echoCmd = echoCmd;
 			TWorkerQueue<CompilerMSVCWorker::CompilerWorkerBool,
 			             CompilerMSVCWorker::CompilerWorkerCppToObj,
@@ -680,7 +690,7 @@ namespace XYO::CPPCompilerCommandDriver {
 					Shell::touchIfExists(rcFiles[k]);
 				};
 
-				resObj = objFilename(projectName, (k + 1), rcFiles.length(), rcFiles[k], tmpPath, options);
+				resObj = objFilename(projectName, rcFiles[k], tmpPath, options, (k + 1), rcFiles.length());
 
 				if (!makeRcToObj(
 				        rcFiles[k],
@@ -756,7 +766,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		};
 
 		for (k = 0; k < cppFiles.length(); ++k) {
-			objFiles[k] = objFilename(projectName, (k + 1), cppFiles.length(), cppFiles[k], tmpPath, options);
+			objFiles[k] = objFilename(projectName, cppFiles[k], tmpPath, options, (k + 1), cppFiles.length());
 			cppFilesTime[k].getLastWriteTime(cppFiles[k]);
 			objFilesTime[k].getLastWriteTime(objFiles[k]);
 		};
@@ -792,6 +802,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			for (m = 0; m < cppDefine.length(); ++m) {
 				parameter->cppDefine[m] = cppDefine[m];
 			};
+			parameter->index = (k + 1);
+			parameter->indexLn = cppFiles.length();
 			parameter->echoCmd = echoCmd;
 			TWorkerQueue<CompilerMSVCWorker::CompilerWorkerBool,
 			             CompilerMSVCWorker::CompilerWorkerCppToObj,
@@ -823,7 +835,7 @@ namespace XYO::CPPCompilerCommandDriver {
 				Shell::touchIfExists(rcFiles[k]);
 			};
 
-			resObj = objFilename(projectName, (k + 1), rcFiles.length(), rcFiles[k], tmpPath, options);
+			resObj = objFilename(projectName, rcFiles[k], tmpPath, options, (k + 1), rcFiles.length());
 
 			if (!makeRcToObj(
 			        rcFiles[k],
@@ -856,6 +868,8 @@ namespace XYO::CPPCompilerCommandDriver {
 	    int options,
 	    TDynamicArray<String> &cDefine,
 	    TDynamicArray<String> &incPath,
+	    int index,
+	    int indexLn,
 	    bool echoCmd) {
 		String cmd;
 		String content;
@@ -932,7 +946,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		cmd << " @" << cmdFile;
 
 		if (echoCmd) {
-			printf("%s\n", cmd.value());
+			printf("[%d/%d] %s\n", index, indexLn, cmd.value());
 		};
 		return (Shell::system(cmd) == 0);
 	};
@@ -949,6 +963,8 @@ namespace XYO::CPPCompilerCommandDriver {
 				    parameter->options,
 				    parameter->cppDefine,
 				    parameter->incPath,
+				    parameter->index,
+				    parameter->indexLn,
 				    parameter->echoCmd);
 			};
 			return retV;
@@ -1003,7 +1019,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		};
 
 		for (k = 0; k < cFiles.length(); ++k) {
-			objFiles[k] = objFilename(projectName, (k + 1), cFiles.length(), cFiles[k], tmpPath, options);
+			objFiles[k] = objFilename(projectName, cFiles[k], tmpPath, options, (k + 1), cFiles.length());
 			cFilesTime[k].getLastWriteTime(cFiles[k]);
 			objFilesTime[k].getLastWriteTime(objFiles[k]);
 		};
@@ -1039,6 +1055,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			for (m = 0; m < cDefine.length(); ++m) {
 				parameter->cppDefine[m] = cDefine[m];
 			};
+			parameter->index = (k + 1);
+			parameter->indexLn = cFiles.length();
 			parameter->echoCmd = echoCmd;
 			TWorkerQueue<CompilerMSVCWorker::CompilerWorkerBool,
 			             CompilerMSVCWorker::CompilerWorkerCppToObj,
@@ -1071,7 +1089,7 @@ namespace XYO::CPPCompilerCommandDriver {
 					Shell::touchIfExists(rcFiles[k]);
 				};
 
-				resObj = objFilename(projectName, (k + 1), rcFiles.length(), rcFiles[k], tmpPath, options);
+				resObj = objFilename(projectName, rcFiles[k], tmpPath, options, (k + 1), rcFiles.length());
 
 				if (!makeRcToObj(
 				        rcFiles[k],
@@ -1147,7 +1165,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		};
 
 		for (k = 0; k < cFiles.length(); ++k) {
-			objFiles[k] = objFilename(projectName, (k + 1), cFiles.length(), cFiles[k], tmpPath, options);
+			objFiles[k] = objFilename(projectName, cFiles[k], tmpPath, options, (k + 1), cFiles.length());
 			cFilesTime[k].getLastWriteTime(cFiles[k]);
 			objFilesTime[k].getLastWriteTime(objFiles[k]);
 		};
@@ -1183,6 +1201,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			for (m = 0; m < cDefine.length(); ++m) {
 				parameter->cppDefine[m] = cDefine[m];
 			};
+			parameter->index = (k + 1);
+			parameter->indexLn = cFiles.length();
 			parameter->echoCmd = echoCmd;
 			TWorkerQueue<CompilerMSVCWorker::CompilerWorkerBool,
 			             CompilerMSVCWorker::CompilerWorkerCppToObj,
@@ -1214,7 +1234,7 @@ namespace XYO::CPPCompilerCommandDriver {
 				Shell::touchIfExists(rcFiles[k]);
 			};
 
-			resObj = objFilename(projectName, (k + 1), rcFiles.length(), rcFiles[k], tmpPath, options);
+			resObj = objFilename(projectName, rcFiles[k], tmpPath, options, (k + 1), rcFiles.length());
 
 			if (!makeRcToObj(
 			        rcFiles[k],

@@ -19,11 +19,11 @@ namespace XYO::CPPCompilerCommandDriver {
 
 			XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT String objFilename(
 			    const String &project,
-			    int index,
-			    int indexLn,
 			    const String &fileName,
 			    const String &tmpPath,
-			    int options);
+			    int options,
+			    int index,
+			    int indexLn);
 
 			XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT bool cppToObj(
 			    int options,
@@ -31,6 +31,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			    String objFile,
 			    TDynamicArray<String> &cppDefine,
 			    TDynamicArray<String> &incPath,
+			    int index,
+			    int indexLn,
 			    bool echoCmd);
 
 			XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT bool makeObjToLib(
@@ -123,6 +125,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			    int options,
 			    TDynamicArray<String> &cDefine,
 			    TDynamicArray<String> &incPath,
+			    int index,
+			    int indexLn,
 			    bool echoCmd);
 
 			XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT bool makeCToLib(
