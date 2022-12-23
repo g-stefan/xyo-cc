@@ -21,7 +21,7 @@
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
 				"dependency" : [
-					"xyo-cc.library"
+					"xyo-cc"
 				],
 				"defines" : [
 					"XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION_LIBRARY"
