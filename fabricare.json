@@ -12,8 +12,7 @@
 				"dependency" : [
 					"file-json"
 				],
-				"versionName" : "xyo-cc.library",
-				"noRelease" : true
+				"versionName" : "xyo-cc.library"
 			},
 			{
 				"name" : "xyo-cc.application",
@@ -27,8 +26,7 @@
 				"defines" : [
 					"XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION_LIBRARY"
 				],
-				"linkVersion" : "xyo-cc",
-				"noRelease" : true
+				"linkVersion" : "xyo-cc"
 			},
 			{
 				"name" : "xyo-cc",
@@ -38,7 +36,9 @@
 				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
 				"dependency" : [
 					"xyo-cc"
-				]
+				],
+				"hasRelease" : true,
+				"githubRelease" : true
 			}
 		]
 	}
