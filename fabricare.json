@@ -5,7 +5,6 @@
 		"projects" : [
 			{
 				"name" : "xyo-cc",
-				"type" : "xyo-cpp",
 				"make" : "lib",
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver",
@@ -16,7 +15,6 @@
 			},
 			{
 				"name" : "xyo-cc.application",
-				"type" : "xyo-cpp",
 				"make" : "lib",
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
@@ -30,16 +28,14 @@
 			},
 			{
 				"name" : "xyo-cc",
-				"type" : "xyo-cpp",
 				"make" : "exe.static",
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
 				"dependency" : [
 					"xyo-cc"
-				],
-				"hasRelease" : true,
-				"githubRelease" : true
+				]
 			}
-		]
+		],
+		"hasGithub" : true
 	}
 }
