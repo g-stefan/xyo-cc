@@ -11,3 +11,4 @@
 1  ICON "Application.ico"
 
 XYO_APPLICATION_VERSION_INFO(XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION,"xyo-cc.exe","C++ Compiler Command Driver")
+XYO_APPLICATION_MANIFEST("Application.manifest")
