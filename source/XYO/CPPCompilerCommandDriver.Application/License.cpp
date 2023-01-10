@@ -1,7 +1,7 @@
 // C++ Compiler Command Driver
-// Copyright (c) 2022 Grigore Stefan <g_stefan@yahoo.com>
+// Copyright (c) 2020-2023 Grigore Stefan <g_stefan@yahoo.com>
 // MIT License (MIT) <http://opensource.org/licenses/MIT>
-// SPDX-FileCopyrightText: 2022 Grigore Stefan <g_stefan@yahoo.com>
+// SPDX-FileCopyrightText: 2020-2023 Grigore Stefan <g_stefan@yahoo.com>
 // SPDX-License-Identifier: MIT
 
 #include <XYO/CPPCompilerCommandDriver.Application/License.hpp>
@@ -9,11 +9,11 @@
 namespace XYO::CPPCompilerCommandDriver::Application::License {
 
 	const char *license() {
-		return XYO::ManagedMemory::License::license();
+		return XYO::CPPCompilerCommandDriver::License::license();
 	};
 
 	const char *shortLicense() {
-		return XYO::ManagedMemory::License::shortLicense();
+		return XYO::CPPCompilerCommandDriver::License::shortLicense();
 	};
 
 };
