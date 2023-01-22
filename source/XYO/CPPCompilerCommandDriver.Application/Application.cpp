@@ -193,7 +193,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 							printf("Error: json syntax - includePath - %s\n", &cmdS[i][1]);
 							return 1;
 						};
-						if (key == "cHeader") {
+						if (key == "hSource") {
 							vArray = TDynamicCast<FileJSON::VArray *>(item);
 							if (vArray) {
 								for (m = 0; m < vArray->value->length(); ++m) {
@@ -202,12 +202,12 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 										cmdLine.push(String("--src-h=") + vString->value);
 										continue;
 									};
-									printf("Error: json syntax - cHeader/items - %s\n", &cmdS[i][1]);
+									printf("Error: json syntax - hSource/items - %s\n", &cmdS[i][1]);
 									return 1;
 								};
 								continue;
 							};
-							printf("Error: json syntax - cHeader - %s\n", &cmdS[i][1]);
+							printf("Error: json syntax - hSource - %s\n", &cmdS[i][1]);
 							return 1;
 						};
 						if (key == "cSource") {
@@ -227,7 +227,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 							printf("Error: json syntax - cSource - %s\n", &cmdS[i][1]);
 							return 1;
 						};
-						if (key == "cppHeader") {
+						if (key == "hppSource") {
 							vArray = TDynamicCast<FileJSON::VArray *>(item);
 							if (vArray) {
 								for (m = 0; m < vArray->value->length(); ++m) {
@@ -236,12 +236,12 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 										cmdLine.push(String("--src-hpp=") + vString->value);
 										continue;
 									};
-									printf("Error: json syntax - cppHeader/items - %s\n", &cmdS[i][1]);
+									printf("Error: json syntax - hppSource/items - %s\n", &cmdS[i][1]);
 									return 1;
 								};
 								continue;
 							};
-							printf("Error: json syntax - cppHeader - %s\n", &cmdS[i][1]);
+							printf("Error: json syntax - hppSource - %s\n", &cmdS[i][1]);
 							return 1;
 						};
 						if (key == "cppSource") {
