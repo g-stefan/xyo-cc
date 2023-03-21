@@ -191,7 +191,7 @@ namespace XYO::CPPCompilerCommandDriver {
 				cmd << " \"" << libNameOut << "\"";
 				cmd << " \"" << String::replace(objFiles[k], "\\", "/") << "\"";
 				if (echoCmd) {
-					printf("[%d/%d] %s\n", (int)(k+1), (int)objFiles.length(), cmd.value());
+					printf("[%d/%d] %s\n", (int)(k + 1), (int)objFiles.length(), cmd.value());
 				};
 				if (Shell::system(cmd) != 0) {
 					Shell::remove(libNameOut);

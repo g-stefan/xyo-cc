@@ -13,10 +13,10 @@
 
 namespace XYO::CPPCompilerCommandDriver::Copyright {
 
-	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *copyright();
-	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *publisher();
-	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *company();
-	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT const char *contact();
+	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT std::string copyright();
+	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT std::string publisher();
+	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT std::string company();
+	XYO_CPPCOMPILERCOMMANDDRIVER_EXPORT std::string contact();
 
 };
 

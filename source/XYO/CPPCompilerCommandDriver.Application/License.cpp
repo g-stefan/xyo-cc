@@ -8,11 +8,11 @@
 
 namespace XYO::CPPCompilerCommandDriver::Application::License {
 
-	const char *license() {
+	std::string license() {
 		return XYO::CPPCompilerCommandDriver::License::license();
 	};
 
-	const char *shortLicense() {
+	std::string shortLicense() {
 		return XYO::CPPCompilerCommandDriver::License::shortLicense();
 	};
 
