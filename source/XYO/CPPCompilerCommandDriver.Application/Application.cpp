@@ -16,7 +16,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 	void Application::showUsage() {
 		printf("C++ Compiler Command Driver\n");
 		showVersion();
-		printf("%s\n\n", CPPCompilerCommandDriver::Application::Copyright::copyright().c_str());
+		printf("%s\n\n", CPPCompilerCommandDriver::Application::Copyright::copyright());
 
 		printf("%s",
 		       "options:\n"
@@ -403,9 +403,9 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			if (StringCore::beginWith(cmdLine[i], "--")) {
 				opt = cmdLine[i].index(2);
 				optValue = "";
-				if (String::indexOf(opt, "=", 0, optIndex)) {
-					optValue = String::substring(opt, optIndex + 1);
-					opt = String::substring(opt, 0, optIndex);
+				if (StringX::indexOf(opt, "=", 0, optIndex)) {
+					optValue = StringX::substring(opt, optIndex + 1);
+					opt = StringX::substring(opt, 0, optIndex);
 				};
 				if (opt == "usage") {
 					showUsage();
@@ -539,7 +539,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 						return 1;
 					};
 					libDependency.push(optValue);
-					if (String::endsWith(libDependency[libDependency.length() - 1], ".static")) {
+					if (StringX::endsWith(libDependency[libDependency.length() - 1], ".static")) {
 						crtOption = CompilerOptions::CRTStatic;
 					};
 					continue;
@@ -708,11 +708,11 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 
 		// ---
 
-		String defInternal = String::toUpperCaseAscii(projectName) + "_INTERNAL";
-		defInternal = String::replace(defInternal, "-", "_");
-		defInternal = String::replace(defInternal, ".", "_");
-		if (String::beginWith(projectName, "lib")) {
-			defInternal = String::substring(defInternal, 3);
+		String defInternal = StringX::toUpperCaseAscii(projectName) + "_INTERNAL";
+		defInternal = StringX::replace(defInternal, "-", "_");
+		defInternal = StringX::replace(defInternal, ".", "_");
+		if (StringX::beginWith(projectName, "lib")) {
+			defInternal = StringX::substring(defInternal, 3);
 		};
 		cppDefine.push(defInternal);
 
@@ -751,7 +751,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 #endif
 
 		size_t strIndex;
-		if (String::indexOf(platformName, "win64-msvc", 0, strIndex)) {
+		if (StringX::indexOf(platformName, "win64-msvc", 0, strIndex)) {
 			if (compiler->type != CompilerType::MSVC) {
 				compiler = TMemory<CompilerMSVC>::newMemory();
 			};
@@ -760,7 +760,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			compiler->is64Bit = true;
 			compiler->is32Bit = false;
 		};
-		if (String::indexOf(platformName, "win32-msvc", 0, strIndex)) {
+		if (StringX::indexOf(platformName, "win32-msvc", 0, strIndex)) {
 			if (compiler->type != CompilerType::MSVC) {
 				compiler = TMemory<CompilerMSVC>::newMemory();
 			};

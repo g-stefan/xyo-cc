@@ -86,8 +86,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			return false;
 		};
 
-		cppFile = String::replace(cppFile, "/", "\\");
-		objFile = String::replace(objFile, "/", "\\");
+		cppFile = StringX::replace(cppFile, "/", "\\");
+		objFile = StringX::replace(objFile, "/", "\\");
 
 		String cxx = Shell::getEnv("CXX");
 		if (cxx.length() == 0) {
@@ -133,13 +133,13 @@ namespace XYO::CPPCompilerCommandDriver {
 		};
 
 		for (k = 0; k < incPath.length(); ++k) {
-			content << " /I\"" << String::replace(incPath[k], "/", "\\") << "\"";
+			content << " /I\"" << StringX::replace(incPath[k], "/", "\\") << "\"";
 		};
 		for (k = 0; k < cppDefine.length(); ++k) {
 			content << " /D\"" << cppDefine[k] << "\"";
 		};
 		if (options & CompilerOptions::Debug) {
-			content << " /Fd\"" << String::replace(objFile, ".obj", ".pdb") << "\"";
+			content << " /Fd\"" << StringX::replace(objFile, ".obj", ".pdb") << "\"";
 		};
 
 		if (is32Bit) {
@@ -148,7 +148,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		content << " /Fo\"" << objFile << "\"";
 		content << " \"" << cppFile << "\"";
 
-		String cmdFile = String::replace(objFile, ".cpp.obj", ".cpp2obj");
+		String cmdFile = StringX::replace(objFile, ".cpp.obj", ".cpp2obj");
 		Shell::filePutContents(cmdFile, content);
 		cmd << " @" << cmdFile;
 
@@ -193,9 +193,9 @@ namespace XYO::CPPCompilerCommandDriver {
 			return false;
 		};
 
-		binPath = String::replace(binPath, "/", "\\");
-		libPath = String::replace(libPath, "/", "\\");
-		tmpPath = String::replace(tmpPath, "/", "\\");
+		binPath = StringX::replace(binPath, "/", "\\");
+		libPath = StringX::replace(libPath, "/", "\\");
+		tmpPath = StringX::replace(tmpPath, "/", "\\");
 
 		if (options & CompilerOptions::StaticLibrary) {
 			libNameOut = libPath << "\\" << libName << ".lib";
@@ -213,7 +213,7 @@ namespace XYO::CPPCompilerCommandDriver {
 			};
 
 			for (k = 0; k < objFiles.length(); ++k) {
-				content << " \"" << String::replace(objFiles[k], "/", "\\") << "\"";
+				content << " \"" << StringX::replace(objFiles[k], "/", "\\") << "\"";
 			};
 
 			Shell::filePutContents(tmpPath + "\\" + libName + ".obj2lib", content);
@@ -265,14 +265,14 @@ namespace XYO::CPPCompilerCommandDriver {
 			};
 			content << " /implib:\"" << libPath << "\\" << libName << ".lib\"";
 			for (k = 0; k < objFiles.length(); ++k) {
-				content << " \"" << String::replace(objFiles[k], "/", "\\") << "\"";
+				content << " \"" << StringX::replace(objFiles[k], "/", "\\") << "\"";
 			};
 			for (k = 0; k < libDependencyPath.length(); ++k) {
 				content << " /LIBPATH:\"" << libDependencyPath[k] << "\"";
 			};
 			for (k = 0; k < libDependency.length(); ++k) {
 				if (libDependency[k][0] == ':') {
-					content << " " << String::substring(libDependency[k], 1) << ".lib";
+					content << " " << StringX::substring(libDependency[k], 1) << ".lib";
 					continue;
 				};
 				content << " " << libDependency[k] << ".lib";
@@ -327,8 +327,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			return false;
 		};
 
-		binPath = String::replace(binPath, "/", "\\");
-		tmpPath = String::replace(tmpPath, "/", "\\");
+		binPath = StringX::replace(binPath, "/", "\\");
+		tmpPath = StringX::replace(tmpPath, "/", "\\");
 
 		exeNameOut = binPath << "\\" << exeName << ".exe";
 		if (!force) {
@@ -363,14 +363,14 @@ namespace XYO::CPPCompilerCommandDriver {
 			};
 		};
 		for (k = 0; k < objFiles.length(); ++k) {
-			content << " \"" << String::replace(objFiles[k], "/", "\\") << "\"";
+			content << " \"" << StringX::replace(objFiles[k], "/", "\\") << "\"";
 		};
 		for (k = 0; k < libDependencyPath.length(); ++k) {
 			content << " /LIBPATH:\"" << libDependencyPath[k] << "\"";
 		};
 		for (k = 0; k < libDependency.length(); ++k) {
 			if (libDependency[k][0] == ':') {
-				content << " " << String::substring(libDependency[k], 1) << ".lib";
+				content << " " << StringX::substring(libDependency[k], 1) << ".lib";
 				continue;
 			};
 			content << " " << libDependency[k] << ".lib";
@@ -409,11 +409,11 @@ namespace XYO::CPPCompilerCommandDriver {
 			return false;
 		};
 
-		rcFile = String::replace(rcFile, "/", "\\");
-		resFile = String::replace(resFile, "/", "\\");
+		rcFile = StringX::replace(rcFile, "/", "\\");
+		resFile = StringX::replace(resFile, "/", "\\");
 		cmd = "rc.exe /nologo";
 		for (k = 0; k < incPath.length(); ++k) {
-			cmd << " /i \"" << String::replace(incPath[k], "/", "\\") << "\"";
+			cmd << " /i \"" << StringX::replace(incPath[k], "/", "\\") << "\"";
 		};
 		for (k = 0; k < rcDefine.length(); ++k) {
 			cmd << " /d \"" << rcDefine[k] << "\"";
@@ -436,8 +436,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			return false;
 		};
 
-		resFile = String::replace(resFile, "/", "\\");
-		objFile = String::replace(objFile, "/", "\\");
+		resFile = StringX::replace(resFile, "/", "\\");
+		objFile = StringX::replace(objFile, "/", "\\");
 
 		cmd = "cvtres.exe /NOLOGO";
 
@@ -464,7 +464,7 @@ namespace XYO::CPPCompilerCommandDriver {
 	    bool force) {
 		bool toMake;
 
-		String resFile = String::replace(objFile, ".obj", ".res");
+		String resFile = StringX::replace(objFile, ".obj", ".res");
 		toMake = false;
 		if (!Shell::fileExists(resFile)) {
 			toMake = true;
@@ -880,8 +880,8 @@ namespace XYO::CPPCompilerCommandDriver {
 			return false;
 		};
 
-		cFile = String::replace(cFile, "/", "\\");
-		objFile = String::replace(objFile, "/", "\\");
+		cFile = StringX::replace(cFile, "/", "\\");
+		objFile = StringX::replace(objFile, "/", "\\");
 
 		String cc = Shell::getEnv("CC");
 		if (cc.length() == 0) {
@@ -927,13 +927,13 @@ namespace XYO::CPPCompilerCommandDriver {
 		};
 
 		for (k = 0; k < incPath.length(); ++k) {
-			content << " /I\"" << String::replace(incPath[k], "/", "\\") << "\"";
+			content << " /I\"" << StringX::replace(incPath[k], "/", "\\") << "\"";
 		};
 		for (k = 0; k < cDefine.length(); ++k) {
 			content << " /D\"" << cDefine[k] << "\"";
 		};
 		if (options & CompilerOptions::Debug) {
-			content << " /Fd\"" << String::replace(objFile, ".obj", ".pdb") << "\"";
+			content << " /Fd\"" << StringX::replace(objFile, ".obj", ".pdb") << "\"";
 		};
 		if (is32Bit) {
 			content << " /arch:SSE2";
@@ -941,7 +941,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		content << " /Fo\"" << objFile << "\"";
 		content << " \"" << cFile << "\"";
 
-		String cmdFile = String::replace(objFile, ".c.obj", ".c2obj");
+		String cmdFile = StringX::replace(objFile, ".c.obj", ".c2obj");
 		Shell::filePutContents(cmdFile, content);
 		cmd << " @" << cmdFile;
 
