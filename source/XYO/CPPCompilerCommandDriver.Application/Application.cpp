@@ -403,9 +403,9 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			if (StringCore::beginWith(cmdLine[i], "--")) {
 				opt = cmdLine[i].index(2);
 				optValue = "";
-				if (opt.indexOf( "=", 0, optIndex)) {
-					optValue = opt.substring( optIndex + 1);
-					opt = opt.substring( 0, optIndex);
+				if (opt.indexOf("=", 0, optIndex)) {
+					optValue = opt.substring(optIndex + 1);
+					opt = opt.substring(0, optIndex);
 				};
 				if (opt == "usage") {
 					showUsage();
@@ -709,10 +709,10 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		// ---
 
 		String defInternal = projectName.toUpperCaseAscii() + "_INTERNAL";
-		defInternal = defInternal.replace( "-", "_");
-		defInternal = defInternal.replace( ".", "_");
-		if (projectName.beginWith( "lib")) {
-			defInternal = defInternal.substring( 3);
+		defInternal = defInternal.replace("-", "_");
+		defInternal = defInternal.replace(".", "_");
+		if (projectName.beginWith("lib")) {
+			defInternal = defInternal.substring(3);
 		};
 		cppDefine.push(defInternal);
 
@@ -760,7 +760,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			compiler->is64Bit = true;
 			compiler->is32Bit = false;
 		};
-		if (platformName.indexOf( "win32-msvc", 0, strIndex)) {
+		if (platformName.indexOf("win32-msvc", 0, strIndex)) {
 			if (compiler->type != CompilerType::MSVC) {
 				compiler = TMemory<CompilerMSVC>::newMemory();
 			};
