@@ -118,6 +118,14 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 
 		// ---
 
+		if (Shell::hasEnv("XYO_COMPILE_DEBUG")) {
+			isRelease = false;
+		};
+
+		Shell::getEnv("XYO_COMPILE_DEFINE").explode(" ", cppDefine);
+
+		// ---
+
 		for (i = 1; i < cmdN; ++i) {
 			if (StringCore::beginWith(cmdS[i], "@")) {
 				String content;
