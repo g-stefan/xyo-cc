@@ -403,9 +403,9 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			if (StringCore::beginWith(cmdLine[i], "--")) {
 				opt = cmdLine[i].index(2);
 				optValue = "";
-				if (StringX::indexOf(opt, "=", 0, optIndex)) {
-					optValue = StringX::substring(opt, optIndex + 1);
-					opt = StringX::substring(opt, 0, optIndex);
+				if (opt.indexOf( "=", 0, optIndex)) {
+					optValue = opt.substring( optIndex + 1);
+					opt = opt.substring( 0, optIndex);
 				};
 				if (opt == "usage") {
 					showUsage();
@@ -539,7 +539,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 						return 1;
 					};
 					libDependency.push(optValue);
-					if (StringX::endsWith(libDependency[libDependency.length() - 1], ".static")) {
+					if (libDependency[libDependency.length() - 1].endsWith(".static")) {
 						crtOption = CompilerOptions::CRTStatic;
 					};
 					continue;
@@ -708,11 +708,11 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 
 		// ---
 
-		String defInternal = StringX::toUpperCaseAscii(projectName) + "_INTERNAL";
-		defInternal = StringX::replace(defInternal, "-", "_");
-		defInternal = StringX::replace(defInternal, ".", "_");
-		if (StringX::beginWith(projectName, "lib")) {
-			defInternal = StringX::substring(defInternal, 3);
+		String defInternal = projectName.toUpperCaseAscii() + "_INTERNAL";
+		defInternal = defInternal.replace( "-", "_");
+		defInternal = defInternal.replace( ".", "_");
+		if (projectName.beginWith( "lib")) {
+			defInternal = defInternal.substring( 3);
 		};
 		cppDefine.push(defInternal);
 
@@ -751,7 +751,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 #endif
 
 		size_t strIndex;
-		if (StringX::indexOf(platformName, "win64-msvc", 0, strIndex)) {
+		if (platformName.indexOf("win64-msvc", 0, strIndex)) {
 			if (compiler->type != CompilerType::MSVC) {
 				compiler = TMemory<CompilerMSVC>::newMemory();
 			};
@@ -760,7 +760,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			compiler->is64Bit = true;
 			compiler->is32Bit = false;
 		};
-		if (StringX::indexOf(platformName, "win32-msvc", 0, strIndex)) {
+		if (platformName.indexOf( "win32-msvc", 0, strIndex)) {
 			if (compiler->type != CompilerType::MSVC) {
 				compiler = TMemory<CompilerMSVC>::newMemory();
 			};
