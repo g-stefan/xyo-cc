@@ -24,19 +24,6 @@ namespace XYO::CPPCompilerCommandDriver {
 	    int index,
 	    int indexLn) {
 
-		int digits = 0;
-		do {
-			indexLn /= 10;
-			digits++;
-		} while (indexLn != 0);
-		char strIndex[32];
-		char strProcess[32];
-		strProcess[0] = '%';
-		strProcess[1] = '0';
-		sprintf(&strProcess[2], "%d", digits);
-		strcat(strProcess, "d");
-		sprintf(strIndex, strProcess, index);
-
 		options = filterOptions(options);
 
 		String strOptions;
@@ -61,7 +48,7 @@ namespace XYO::CPPCompilerCommandDriver {
 
 		String retV = tmpPath;
 		retV << Shell::pathSeparator << Shell::getFileName(project) << ".";
-		retV << strIndex << ".";
+		retV << (NumberX::leftPadByDigits(index, indexLn)).value() << ".";
 		retV << strOptions << ".";
 		retV << Shell::getFileName(fileName) << ".o";
 
@@ -135,7 +122,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		cmd << " @" << cmdFile;
 
 		if (echoCmd) {
-			printf("[%d/%d] %s\n", index, indexLn, cmd.value());
+			printf("[%s/%d] %s\n", (NumberX::leftPadByDigits(index, indexLn)).value(), indexLn, cmd.value());
 		};
 		return (Shell::system(cmd) == 0);
 	};
