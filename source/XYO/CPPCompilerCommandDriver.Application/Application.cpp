@@ -112,18 +112,18 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		String outputLibPath = outputPath;
 		String libName;
 		String libVersion;
-		String platformName = XYO_PLATFORM;
+		String platformName = XYO_PLATFORM_NAME;
 
 		bool forceMake = false;
 		bool noLib = false;
 
 		// ---
 
-		if (Shell::hasEnv("XYO_COMPILE_DEBUG")) {
+		if (Shell::hasEnv("XYO_PLATFORM_COMPILE_DEBUG")) {
 			isRelease = false;
 		};
 
-		Shell::getEnv("XYO_COMPILE_DEFINE").explode(" ", cppDefine);
+		Shell::getEnv("XYO_PLATFORM_COMPILE_DEFINE").explode(" ", cppDefine);
 
 		// ---
 
@@ -732,32 +732,32 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		// ---
 
 		TPointer<ICompiler> compiler;
-#ifdef XYO_COMPILER_MSVC
+#ifdef XYO_PLATFORM_COMPILER_MSVC
 		compiler = TMemory<CompilerMSVC>::newMemory();
 #endif
-#ifdef XYO_COMPILER_GCC
+#ifdef XYO_PLATFORM_COMPILER_GCC
 		compiler = TMemory<CompilerGCC>::newMemory();
 #endif
 
-#ifdef XYO_APPLICATION_64BIT
+#ifdef XYO_PLATFORM_64BIT
 		compiler->is64Bit = true;
 #else
 		compiler->is64Bit = false;
 #endif
 
-#ifdef XYO_APPLICATION_32BIT
+#ifdef XYO_PLATFORM_32BIT
 		compiler->is32Bit = true;
 #else
 		compiler->is32Bit = false;
 #endif
 
-#ifdef XYO_OS_LINUX
+#ifdef XYO_PLATFORM_OS_LINUX
 		compiler->isOSLinux = true;
 #else
 		compiler->isOSLinux = false;
 #endif
 
-#ifdef XYO_OS_WINDOWS
+#ifdef XYO_PLATFORM_OS_WINDOWS
 		compiler->isOSWindows = true;
 #else
 		compiler->isOSWindows = false;

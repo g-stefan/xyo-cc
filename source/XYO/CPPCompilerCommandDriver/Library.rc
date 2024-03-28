@@ -8,4 +8,4 @@
 #include <XYO/CPPCompilerCommandDriver/Copyright.rh>
 #include <XYO/CPPCompilerCommandDriver/Version.rh>
 
-XYO_APPLICATION_VERSION_INFO(XYO_CPPCOMPILERCOMMANDDRIVER,"xyo-cc.dll","C++ Compiler Command Driver")
+XYO_PLATFORM_VERSION_INFO(XYO_CPPCOMPILERCOMMANDDRIVER,"xyo-cc.dll","C++ Compiler Command Driver")

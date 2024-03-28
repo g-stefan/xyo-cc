@@ -22,7 +22,7 @@
 namespace XYO::CPPCompilerCommandDriver {
 
 	class ICompiler : public virtual Object {
-			XYO_INTERFACE(ICompiler);
+			XYO_PLATFORM_INTERFACE(ICompiler);
 
 		public:
 			int type;

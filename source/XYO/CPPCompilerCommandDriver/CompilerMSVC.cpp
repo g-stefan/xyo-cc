@@ -84,37 +84,37 @@ namespace XYO::CPPCompilerCommandDriver {
 		content = " /nologo /std:c++17";
 
 		if (options & CompilerOptions::Release) {
-			content += " /DXYO_COMPILE_RELEASE";
+			content += " /DXYO_PLATFORM_COMPILE_RELEASE";
 			if (options & CompilerOptions::CRTDynamic) {
 				content += " /MD";
-				content += " /DXYO_COMPILE_CRT_DYNAMIC";
+				content += " /DXYO_PLATFORM_COMPILE_CRT_DYNAMIC";
 			};
 			if (options & CompilerOptions::CRTStatic) {
 				content += " /MT";
-				content += " /DXYO_COMPILE_CRT_STATIC";
+				content += " /DXYO_PLATFORM_COMPILE_CRT_STATIC";
 			};
 			content += " /O2 /Oi /Oy /Gy /Gd /EHsc /GR /TP /c";
 		};
 		if (options & CompilerOptions::Debug) {
-			content += " /DXYO_COMPILE_DEBUG";
+			content += " /DXYO_PLATFORM_COMPILE_DEBUG";
 			if (options & CompilerOptions::CRTDynamic) {
 				content += " /MDd";
-				content += " /DXYO_COMPILE_CRT_DYNAMIC";
+				content += " /DXYO_PLATFORM_COMPILE_CRT_DYNAMIC";
 			};
 			if (options & CompilerOptions::CRTStatic) {
 				content += " /MTd";
-				content += " /DXYO_COMPILE_CRT_STATIC";
+				content += " /DXYO_PLATFORM_COMPILE_CRT_STATIC";
 			};
 			content += " /Zi /EHsc /GR /TP /c";
 		};
 		if (options & CompilerOptions::StaticLibrary) {
-			content += " /DXYO_COMPILE_STATIC_LIBRARY";
+			content += " /DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
 		};
 		if (options & CompilerOptions::DynamicLibrary) {
 			if (options & CompilerOptions::DynamicLibraryXStatic) {
-				content += " /DXYO_COMPILE_STATIC_LIBRARY";
+				content += " /DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
 			} else {
-				content += " /DXYO_COMPILE_DYNAMIC_LIBRARY";
+				content += " /DXYO_PLATFORM_COMPILE_DYNAMIC_LIBRARY";
 			};
 		};
 
@@ -878,37 +878,37 @@ namespace XYO::CPPCompilerCommandDriver {
 		content = " /nologo";
 
 		if (options & CompilerOptions::Release) {
-			content += " /DXYO_COMPILE_RELEASE";
+			content += " /DXYO_PLATFORM_COMPILE_RELEASE";
 			if (options & CompilerOptions::CRTDynamic) {
 				content += " /MD";
-				content += " /DXYO_COMPILE_CRT_DYNAMIC";
+				content += " /DXYO_PLATFORM_COMPILE_CRT_DYNAMIC";
 			};
 			if (options & CompilerOptions::CRTStatic) {
 				content += " /MT";
-				content += " /DXYO_COMPILE_CRT_STATIC";
+				content += " /DXYO_PLATFORM_COMPILE_CRT_STATIC";
 			};
 			content += " /O2 /Oi /Oy /Gy /Gd /EHsc /GR /TC /c";
 		};
 		if (options & CompilerOptions::Debug) {
-			content += " /DXYO_COMPILE_DEBUG";
+			content += " /DXYO_PLATFORM_COMPILE_DEBUG";
 			if (options & CompilerOptions::CRTDynamic) {
 				content += " /MDd";
-				content += " /DXYO_COMPILE_CRT_DYNAMIC";
+				content += " /DXYO_PLATFORM_COMPILE_CRT_DYNAMIC";
 			};
 			if (options & CompilerOptions::CRTStatic) {
 				content += " /MTd";
-				content += " /DXYO_COMPILE_CRT_STATIC";
+				content += " /DXYO_PLATFORM_COMPILE_CRT_STATIC";
 			};
 			content += " /Zi /EHsc /GR /TC /c";
 		};
 		if (options & CompilerOptions::StaticLibrary) {
-			content += " /DXYO_COMPILE_STATIC_LIBRARY";
+			content += " /DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
 		};
 		if (options & CompilerOptions::DynamicLibrary) {
 			if (options & CompilerOptions::DynamicLibraryXStatic) {
-				content += " /DXYO_COMPILE_STATIC_LIBRARY";
+				content += " /DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
 			} else {
-				content += " /DXYO_COMPILE_DYNAMIC_LIBRARY";
+				content += " /DXYO_PLATFORM_COMPILE_DYNAMIC_LIBRARY";
 			};
 		};
 
