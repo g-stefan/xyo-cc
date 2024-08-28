@@ -2,6 +2,8 @@
 --exe
 
 --def=_CRT_SECURE_NO_WARNINGS
+--def=XYO_PLATFORM_COMPILE_AMALGAM
+--def=XYO_PLATFORM_NO_VERSION
 --def=XYO_MANAGEDMEMORY_NO_VERSION
 --def=XYO_DATASTRUCTURES_NO_VERSION
 --def=XYO_MULTITHREADING_NO_VERSION
@@ -12,6 +14,7 @@
 --def=XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION_NO_VERSION
 
 --inc=source
+--inc=../xyo-platform/source
 --inc=../xyo-managed-memory/source
 --inc=../xyo-data-structures/source
 --inc=../xyo-multithreading/source
@@ -20,6 +23,7 @@
 --inc=../file-json/source
 
 --src-cpp=source/XYO/CPPCompilerCommandDriver.Application.Amalgam.cpp
+--src-cpp=../xyo-platform/source/XYO/Platform.Amalgam.cpp
 --src-cpp=../xyo-managed-memory/source/XYO/ManagedMemory.Amalgam.cpp
 --src-cpp=../xyo-data-structures/source/XYO/DataStructures.Amalgam.cpp
 --src-cpp=../xyo-multithreading/source/XYO/Multithreading.Amalgam.cpp
@@ -29,7 +33,7 @@
 
 --rc-def=XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION_NO_VERSION
 --rc-inc=source
---rc-inc=../xyo-managed-memory/source
+--rc-inc=../xyo-platform/source
 --rc-src=source/XYO/CPPCompilerCommandDriver.Application/Application.rc
 
 --crt-static

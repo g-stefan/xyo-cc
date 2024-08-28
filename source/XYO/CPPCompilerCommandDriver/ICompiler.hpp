@@ -30,6 +30,7 @@ namespace XYO::CPPCompilerCommandDriver {
 			bool isOSLinux;
 			bool is32Bit;
 			bool is64Bit;
+			bool isStatic;
 
 			virtual String objFilename(
 			    const String &project,

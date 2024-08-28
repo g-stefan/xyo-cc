@@ -14,6 +14,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		isOSLinux = false;
 		is32Bit = false;
 		is64Bit = false;
+		isStatic = false;
 	};
 
 	String CompilerGCC::objFilename(
@@ -229,20 +230,24 @@ namespace XYO::CPPCompilerCommandDriver {
 				};
 			};
 			for (k = 0; k < libDependency.length(); ++k) {
-				if (libDependency[k].endsWith(".static")) {
-					if (libDependency[k][0] == ':') {
+				if (libDependency[k][0] == ':') {
+					if (libDependency[k].endsWith(".static")) {
 						content << " -l" << libDependency[k] << ".a";
 						continue;
 					};
-					content << " -l" << libDependency[k].replace("lib", "");
-					continue;
-				};
-				if (libDependency[k][0] == ':') {
 					if (isOSLinux) {
-						content << " -l" << libDependency[k] << ".so";
+						if (isStatic) {
+							content << " -l" << libDependency[k] << ".a";
+						} else {
+							content << " -l" << libDependency[k] << ".so";
+						};
 					};
 					if (isOSWindows) {
-						content << " -l" << libDependency[k] << ".dll";
+						if (isStatic) {
+							content << " -l" << libDependency[k] << ".a";
+						} else {
+							content << " -l" << libDependency[k] << ".dll";
+						}
 					};
 					continue;
 				};
@@ -346,20 +351,24 @@ namespace XYO::CPPCompilerCommandDriver {
 			};
 		};
 		for (k = 0; k < libDependency.length(); ++k) {
-			if (libDependency[k].endsWith(".static")) {
-				if (libDependency[k][0] == ':') {
+			if (libDependency[k][0] == ':') {
+				if (libDependency[k].endsWith(".static")) {
 					content << " -l" << libDependency[k] << ".a";
 					continue;
 				};
-				content << " -l" << libDependency[k].replace("lib", "");
-				continue;
-			};
-			if (libDependency[k][0] == ':') {
 				if (isOSLinux) {
-					content << " -l" << libDependency[k] << ".so";
+					if (isStatic) {
+						content << " -l" << libDependency[k] << ".a";
+					} else {
+						content << " -l" << libDependency[k] << ".so";
+					};
 				};
 				if (isOSWindows) {
-					content << " -l" << libDependency[k] << ".dll";
+					if (isStatic) {
+						content << " -l" << libDependency[k] << ".a";
+					} else {
+						content << " -l" << libDependency[k] << ".dll";
+					}
 				};
 				continue;
 			};
@@ -758,12 +767,6 @@ namespace XYO::CPPCompilerCommandDriver {
 	    int numThreads,
 	    bool echoCmd,
 	    bool force) {
-		if (options & CompilerOptions::CRTStatic) {
-			options |= CompilerOptions::StaticLibrary;
-		};
-		if (options & CompilerOptions::CRTDynamic) {
-			options |= CompilerOptions::DynamicLibrary;
-		};
 		options = filterOptions(options);
 
 		size_t k, m;
@@ -1138,12 +1141,6 @@ namespace XYO::CPPCompilerCommandDriver {
 	    int numThreads,
 	    bool echoCmd,
 	    bool force) {
-		if (options & CompilerOptions::CRTStatic) {
-			options |= CompilerOptions::StaticLibrary;
-		};
-		if (options & CompilerOptions::CRTDynamic) {
-			options |= CompilerOptions::DynamicLibrary;
-		};
 		options = filterOptions(options);
 
 		size_t k, m;

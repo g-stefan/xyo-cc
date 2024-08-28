@@ -3,6 +3,8 @@
 	"type": "exe",
 	"defines": [
 		"_CRT_SECURE_NO_WARNINGS",
+		"XYO_PLATFORM_COMPILE_AMALGAM",
+		"XYO_PLATFORM_NO_VERSION",
 		"XYO_MANAGEDMEMORY_NO_VERSION",
 		"XYO_DATASTRUCTURES_NO_VERSION",
 		"XYO_MULTITHREADING_NO_VERSION",
@@ -14,6 +16,7 @@
 	],
 	"includePath": [
 		"source",
+		"../xyo-platform/source",
 		"../xyo-managed-memory/source",
 		"../xyo-data-structures/source",
 		"../xyo-multithreading/source",
@@ -23,6 +26,7 @@
 	],
 	"cppSource": [
 		"source/XYO/CPPCompilerCommandDriver.Application.Amalgam.cpp",
+		"../xyo-platform/source/XYO/Platform.Amalgam.cpp",
 		"../xyo-managed-memory/source/XYO/ManagedMemory.Amalgam.cpp",
 		"../xyo-data-structures/source/XYO/DataStructures.Amalgam.cpp",
 		"../xyo-multithreading/source/XYO/Multithreading.Amalgam.cpp",
@@ -36,7 +40,7 @@
 		],
 		"includePath":[
 			"source",
-			"../xyo-managed-memory/source"
+			"../xyo-platform/source"
 		],
 		"rcSource":[
 			"source/XYO/CPPCompilerCommandDriver.Application/Application.rc"

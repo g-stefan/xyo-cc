@@ -14,6 +14,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		isOSLinux = false;
 		is32Bit = false;
 		is64Bit = false;
+		isStatic = false;
 	};
 
 	String CompilerMSVC::objFilename(
@@ -724,12 +725,6 @@ namespace XYO::CPPCompilerCommandDriver {
 	    int numThreads,
 	    bool echoCmd,
 	    bool force) {
-		if (options & CompilerOptions::CRTStatic) {
-			options |= CompilerOptions::StaticLibrary;
-		};
-		if (options & CompilerOptions::CRTDynamic) {
-			options |= CompilerOptions::DynamicLibrary;
-		};
 		options = filterOptions(options);
 
 		size_t k, m;
@@ -1123,12 +1118,6 @@ namespace XYO::CPPCompilerCommandDriver {
 	    int numThreads,
 	    bool echoCmd,
 	    bool force) {
-		if (options & CompilerOptions::CRTStatic) {
-			options |= CompilerOptions::StaticLibrary;
-		};
-		if (options & CompilerOptions::CRTDynamic) {
-			options |= CompilerOptions::DynamicLibrary;
-		};
 		options = filterOptions(options);
 
 		size_t k, m;

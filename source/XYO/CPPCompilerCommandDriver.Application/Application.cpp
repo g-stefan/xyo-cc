@@ -120,7 +120,17 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		// ---
 
 		if (Shell::hasEnv("XYO_PLATFORM_COMPILE_DEBUG")) {
-			isRelease = false;
+			String env = Shell::getEnv("XYO_PLATFORM_COMPILE_DEBUG");
+			if (env == "1" || env == "ON" || env == "TRUE") {
+				isRelease = false;
+			};
+		};
+
+		if (Shell::hasEnv("XYO_PLATFORM_COMPILE_CRT_STATIC")) {
+			String env = Shell::getEnv("XYO_PLATFORM_COMPILE_CRT_STATIC");
+			if (env == "1" || env == "ON" || env == "TRUE") {
+				crtOption = CompilerOptions::CRTStatic;
+			};
 		};
 
 		Shell::getEnv("XYO_PLATFORM_COMPILE_DEFINE").explode(" ", cppDefine);
@@ -462,17 +472,14 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				};
 				if (opt == "lib") {
 					makeLibrary = true;
-					crtOption = CompilerOptions::CRTStatic;
 					continue;
 				};
 				if (opt == "dll") {
 					makeDynamicLibrary = true;
-					crtOption = CompilerOptions::CRTDynamic;
 					continue;
 				};
 				if (opt == "dll-x-static") {
 					makeDynamicLibrary = true;
-					crtOption = CompilerOptions::CRTStatic;
 					dllOption = CompilerOptions::DynamicLibraryXStatic;
 					continue;
 				};
@@ -552,9 +559,6 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 						return 1;
 					};
 					libDependency.push(optValue);
-					if (libDependency[libDependency.length() - 1].endsWith(".static")) {
-						crtOption = CompilerOptions::CRTStatic;
-					};
 					continue;
 				};
 				if (opt == "def-file") {
@@ -731,6 +735,27 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 
 		// ---
 
+		defInternal = "";
+		if (makeLibrary) {
+			defInternal = projectName.toUpperCaseAscii() + "_LIB_INTERNAL";
+		};
+		if (makeDynamicLibrary) {
+			defInternal = projectName.toUpperCaseAscii() + "_DLL_INTERNAL";
+		};
+		if (makeExecutable) {
+			defInternal = projectName.toUpperCaseAscii() + "_EXE_INTERNAL";
+		};
+		if (defInternal.length() > 0) {
+			defInternal = defInternal.replace("-", "_");
+			defInternal = defInternal.replace(".", "_");
+			if (projectName.beginWith("lib")) {
+				defInternal = defInternal.substring(3);
+			};
+			cppDefine.push(defInternal);
+		};
+
+		// ---
+
 		TPointer<ICompiler> compiler;
 #ifdef XYO_PLATFORM_COMPILER_MSVC
 		compiler = TMemory<CompilerMSVC>::newMemory();
@@ -763,6 +788,15 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		compiler->isOSWindows = false;
 #endif
 
+		compiler->isStatic = false;
+		if (Shell::hasEnv("XYO_PLATFORM_COMPILE_STATIC")) {
+			String env = Shell::getEnv("XYO_PLATFORM_COMPILE_STATIC");
+			if (env == "1" || env == "ON" || env == "TRUE") {
+				cppDefine.push("XYO_PLATFORM_COMPILE_STATIC");
+				compiler->isStatic = true;
+			};
+		};
+
 		size_t strIndex;
 		if (platformName.indexOf("win64-msvc", 0, strIndex)) {
 			if (compiler->type != CompilerType::MSVC) {
@@ -792,7 +826,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			};
 			if (cSource.length() > 0) {
 				if (!compiler->makeCToLib(
-				        libName.length() ? libName : projectName + ".static",
+				        libName.length() ? libName : projectName,
 				        outputBinPath,
 				        outputLibPath,
 				        tempPath,
@@ -817,7 +851,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			};
 			if (cppSource.length() > 0) {
 				if (!compiler->makeCppToLib(
-				        libName.length() ? libName : projectName + ".static",
+				        libName.length() ? libName : projectName,
 				        outputBinPath,
 				        outputLibPath,
 				        tempPath,
@@ -914,7 +948,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				        projectName,
 				        outputBinPath,
 				        tempPath,
-				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption,
+				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption | (compiler->isStatic ? CompilerOptions::StaticLibrary : CompilerOptions::DynamicLibrary),
 				        cppDefine,
 				        incPath,
 				        hFiles,
@@ -937,7 +971,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				        projectName,
 				        outputBinPath,
 				        tempPath,
-				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption,
+				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption | (compiler->isStatic ? CompilerOptions::StaticLibrary : CompilerOptions::DynamicLibrary),
 				        cppDefine,
 				        incPath,
 				        hppFiles,
