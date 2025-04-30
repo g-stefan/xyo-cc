@@ -1,7 +1,7 @@
 // C++ Compiler Command Driver
-// Copyright (c) 2020-2024 Grigore Stefan <g_stefan@yahoo.com>
+// Copyright (c) 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
 // MIT License (MIT) <http://opensource.org/licenses/MIT>
-// SPDX-FileCopyrightText: 2020-2024 Grigore Stefan <g_stefan@yahoo.com>
+// SPDX-FileCopyrightText: 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
 // SPDX-License-Identifier: MIT
 
 #include <XYO/CPPCompilerCommandDriver.hpp>
@@ -402,14 +402,12 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 					};
 				};
 				if (Shell::fileGetContents(&cmdS[i][1], content)) {
-					int cmdNX;
-					char **cmdSX;
+					XYO::System::ShellArguments shellArguments;
 					int m;
-					Shell::mainArgsSet(content, cmdNX, cmdSX);
-					for (m = 0; m < cmdNX; ++m) {
-						cmdLine.push(cmdSX[m]);
-					};
-					Shell::mainArgsDelete(cmdNX, cmdSX);
+					shellArguments.set(content);
+					for (m = 0; m < shellArguments.cmdN; ++m) {
+						cmdLine.push(shellArguments.cmdS[m]);
+					};					
 					continue;
 				};
 				printf("Error: file not found - %s\n", &cmdS[i][1]);
@@ -725,7 +723,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 
 		// ---
 
-		String defInternal = projectName.toUpperCaseAscii() + "_INTERNAL";
+		String defInternal = projectName.toUpperCaseASCII() + "_INTERNAL";
 		defInternal = defInternal.replace("-", "_");
 		defInternal = defInternal.replace(".", "_");
 		if (projectName.beginWith("lib")) {
@@ -737,13 +735,13 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 
 		defInternal = "";
 		if (makeLibrary) {
-			defInternal = projectName.toUpperCaseAscii() + "_LIB_INTERNAL";
+			defInternal = projectName.toUpperCaseASCII() + "_LIB_INTERNAL";
 		};
 		if (makeDynamicLibrary) {
-			defInternal = projectName.toUpperCaseAscii() + "_DLL_INTERNAL";
+			defInternal = projectName.toUpperCaseASCII() + "_DLL_INTERNAL";
 		};
 		if (makeExecutable) {
-			defInternal = projectName.toUpperCaseAscii() + "_EXE_INTERNAL";
+			defInternal = projectName.toUpperCaseASCII() + "_EXE_INTERNAL";
 		};
 		if (defInternal.length() > 0) {
 			defInternal = defInternal.replace("-", "_");
