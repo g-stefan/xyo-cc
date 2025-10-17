@@ -9,9 +9,24 @@
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver",
 				"dependency" : [
-					"file-json"					
+					"file-json"
 				],
 				"versionName" : "xyo-cc.library"
+			},
+			{
+				"name": "xyo-cc.static",
+				"make": "lib",
+				"category": "make",
+				"SPDX-License-Identifier": "MIT",
+				"sourcePath" : "XYO/CPPCompilerCommandDriver",
+				"dependency" : [
+					"file-json.static"
+				],
+				"dependencyDefines" : [
+					"XYO_CPPCOMPILERCOMMANDDRIVER_LIBRARY"
+				],
+				"linkVersion": "xyo-cc.library",
+				"crt": "static"
 			},
 			{
 				"name" : "xyo-cc.application.static",
@@ -19,12 +34,13 @@
 				"SPDX-License-Identifier": "MIT",
 				"sourcePath" : "XYO/CPPCompilerCommandDriver.Application",
 				"dependency" : [
-					"xyo-cc"
+					"xyo-cc.static"
 				],
-				"defines" : [
+				"dependencyDefines" : [
 					"XYO_CPPCOMPILERCOMMANDDRIVER_APPLICATION_LIBRARY"
 				],
-				"linkVersion" : "xyo-cc"
+				"linkVersion" : "xyo-cc",
+				"crt": "static"
 			},
 			{
 				"name" : "xyo-cc",
