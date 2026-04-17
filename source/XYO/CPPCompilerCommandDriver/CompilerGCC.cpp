@@ -1,7 +1,7 @@
 // C++ Compiler Command Driver
-// Copyright (c) 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
+// Copyright (c) 2020-2026 Grigore Stefan <g_stefan@yahoo.com>
 // MIT License (MIT) <http://opensource.org/licenses/MIT>
-// SPDX-FileCopyrightText: 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
+// SPDX-FileCopyrightText: 2020-2026 Grigore Stefan <g_stefan@yahoo.com>
 // SPDX-License-Identifier: MIT
 
 #include <XYO/CPPCompilerCommandDriver/CompilerGCC.hpp>
@@ -12,6 +12,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		type = CompilerType::GCC;
 		isOSWindows = false;
 		isOSLinux = false;
+		isOSEmscripten = false;
 		is32Bit = false;
 		is64Bit = false;
 		isStatic = false;
@@ -79,9 +80,15 @@ namespace XYO::CPPCompilerCommandDriver {
 		String cxx = Shell::getEnv("CXX");
 		if (cxx.length() == 0) {
 			cxx = "gcc";
+			if (isOSEmscripten) {
+				cxx = "emcc";
+			}
 		};
 		cmd = cxx;
-		content = " -O1 -std=c++11 -std=gnu++11 -fpermissive";
+		content = " -O1 -std=c++17 -std=gnu++17 -fpermissive";
+		if (isOSEmscripten) {
+			content += " -pthread";
+		};
 		if (options & CompilerOptions::Release) {
 			content += " -DXYO_PLATFORM_COMPILE_RELEASE";
 		};
@@ -101,7 +108,9 @@ namespace XYO::CPPCompilerCommandDriver {
 		if (options & CompilerOptions::DynamicLibrary) {
 			content += " -fpic";
 			if (isOSLinux) {
-				content += " -rdynamic";
+				if (!isOSEmscripten) {
+					content += " -rdynamic";
+				};
 			};
 			if (options & CompilerOptions::DynamicLibraryXStatic) {
 				content += " -DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
@@ -263,10 +272,17 @@ namespace XYO::CPPCompilerCommandDriver {
 				content << " -luser32 -lws2_32";
 			};
 
+			if (isOSEmscripten) {
+				content += " -s NODERAWFS=1 -pthread";
+			};
+
 			Shell::filePutContents(tmpPath + "/" + libName + ".o2so", content);
 			String cxx = Shell::getEnv("CXX");
 			if (cxx.length() == 0) {
 				cxx = "gcc";
+				if (isOSEmscripten) {
+					cxx = "emcc";
+				};
 			};
 			cmd = cxx + " @";
 			cmd << tmpPath + "/" + libName + ".o2so";
@@ -338,6 +354,45 @@ namespace XYO::CPPCompilerCommandDriver {
 			};
 		};
 
+		if (isOSEmscripten) {
+			content += " -s NODERAWFS=1 -pthread ";
+			String exePreRUN = tmpPath + "/" + exeName + ".prerun.js";
+			String exePreRUNContent = "";
+			exePreRUNContent+="Module[\"preRun\"] = () => {\r\n";
+			exePreRUNContent+="\tif (ENVIRONMENT_IS_NODE) {\r\n";
+			exePreRUNContent+="\t\tif (typeof(ENV) !== 'undefined') {\r\n";
+			exePreRUNContent<<"\t\t\tENV['EMSCRIPTEN_PLATFORM'] = process.platform;\r\n";
+			exePreRUNContent<<"\t\t\tENV['TEMP'] = process.env.TEMP;\r\n";
+			// ---
+			String exeEnv = tmpPath + "/" + exeName + ".env";
+			if(Shell::fileExists(exeEnv)) {
+				String exeEnvContent;
+				if(Shell::fileGetContentsUTF8(exeEnv,exeEnvContent,UTFStreamMode::UTF8)) {
+					TDynamicArray<String> exeEnvList;
+					if(exeEnvContent.explode("\r", exeEnvList)) {
+						String line;
+						size_t k;																		
+						for(k=0;k<exeEnvList.length();++k) {
+							line=exeEnvList[k].trimASCII();
+							if(line.length()==0) {
+								continue;
+							};
+							if(line[0]=='#') {
+								continue;
+							};
+							exePreRUNContent<<"\t\t\tENV['"<<line<<"'] = process.env."<<line<<";\r\n";
+						};
+					};
+				};
+			};									
+			// ---
+			exePreRUNContent+="\t\t}\r\n";
+			exePreRUNContent+="\t}\r\n";
+			exePreRUNContent+="}\r\n";
+			Shell::filePutContentsUTF8(exePreRUN,exePreRUNContent,UTFStreamMode::UTF8);
+			content << " --pre-js \"" << exePreRUN << "\" ";					
+		};
+
 		content << "-o \"" << exeNameOut << "\" -Wl,-rpath='$ORIGIN'";
 		for (k = 0; k < objFiles.length(); ++k) {
 			content << " \"" << objFiles[k].replace("\\", "/") << "\"";
@@ -396,6 +451,9 @@ namespace XYO::CPPCompilerCommandDriver {
 		String cxx = Shell::getEnv("CXX");
 		if (cxx.length() == 0) {
 			cxx = "gcc";
+			if (isOSEmscripten) {
+				cxx = "emcc";
+			};
 		};
 		cmd = cxx + " @";
 		cmd << tmpPath + "/" + exeName + ".o2elf";
@@ -907,9 +965,15 @@ namespace XYO::CPPCompilerCommandDriver {
 		String cc = Shell::getEnv("CC");
 		if (cc.length() == 0) {
 			cc = "gcc";
+			if (isOSEmscripten) {
+				cc = "emcc";
+			};
 		};
 		cmd = cc;
 		content = " -O1";
+		if (isOSEmscripten) {
+			content += " -pthread";
+		};
 		if (options & CompilerOptions::Release) {
 			content += " -DXYO_PLATFORM_COMPILE_RELEASE";
 		};
@@ -927,7 +991,12 @@ namespace XYO::CPPCompilerCommandDriver {
 			content += " -DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
 		};
 		if (options & CompilerOptions::DynamicLibrary) {
-			content += " -fpic -rdynamic";
+			content += " -fpic";
+			if (isOSLinux) {
+				if (!isOSEmscripten) {
+					content += " -rdynamic";
+				};
+			};
 			if (options & CompilerOptions::DynamicLibraryXStatic) {
 				content += " -DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
 			} else {

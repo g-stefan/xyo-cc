@@ -1,7 +1,7 @@
 // C++ Compiler Command Driver
-// Copyright (c) 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
+// Copyright (c) 2020-2026 Grigore Stefan <g_stefan@yahoo.com>
 // MIT License (MIT) <http://opensource.org/licenses/MIT>
-// SPDX-FileCopyrightText: 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
+// SPDX-FileCopyrightText: 2020-2026 Grigore Stefan <g_stefan@yahoo.com>
 // SPDX-License-Identifier: MIT
 
 #ifndef XYO_CPPCOMPILERCOMMANDDRIVER_ICOMPILER_HPP
@@ -28,6 +28,7 @@ namespace XYO::CPPCompilerCommandDriver {
 			int type;
 			bool isOSWindows;
 			bool isOSLinux;
+			bool isOSEmscripten;
 			bool is32Bit;
 			bool is64Bit;
 			bool isStatic;

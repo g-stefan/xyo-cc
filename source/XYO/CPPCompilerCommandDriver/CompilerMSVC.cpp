@@ -1,7 +1,7 @@
 // C++ Compiler Command Driver
-// Copyright (c) 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
+// Copyright (c) 2020-2026 Grigore Stefan <g_stefan@yahoo.com>
 // MIT License (MIT) <http://opensource.org/licenses/MIT>
-// SPDX-FileCopyrightText: 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
+// SPDX-FileCopyrightText: 2020-2026 Grigore Stefan <g_stefan@yahoo.com>
 // SPDX-License-Identifier: MIT
 
 #include <XYO/CPPCompilerCommandDriver/CompilerMSVC.hpp>
@@ -12,6 +12,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		type = CompilerType::MSVC;
 		isOSWindows = false;
 		isOSLinux = false;
+		isOSEmscripten = false;
 		is32Bit = false;
 		is64Bit = false;
 		isStatic = false;

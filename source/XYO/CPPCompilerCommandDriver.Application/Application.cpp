@@ -1,7 +1,7 @@
 // C++ Compiler Command Driver
-// Copyright (c) 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
+// Copyright (c) 2020-2026 Grigore Stefan <g_stefan@yahoo.com>
 // MIT License (MIT) <http://opensource.org/licenses/MIT>
-// SPDX-FileCopyrightText: 2020-2025 Grigore Stefan <g_stefan@yahoo.com>
+// SPDX-FileCopyrightText: 2020-2026 Grigore Stefan <g_stefan@yahoo.com>
 // SPDX-License-Identifier: MIT
 
 #include <XYO/CPPCompilerCommandDriver.hpp>
@@ -55,7 +55,14 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		       "    --lib-name=name           use name for static library\n"
 		       "    --lib-version=version     library name use version\n"
 		       "    --force-make              force build all\n"
-		       "    --no-lib                  do not generate library files (.lib), when build dll\n");
+		       "    --no-lib                  do not generate library files (.lib), when build dll\n"
+		       "    --platform-compiler-msvc  use msvc compiler\n"
+		       "    --platform-compiler-gcc   use gcc compiler\n"
+		       "    --platform-64bit          compile for 64bit\n"
+		       "    --platform-32bit          compile for 32bit\n"
+		       "    --platform-os-linux       platform os is linux\n"
+		       "    --platform-os-windows     platform os is windows\n"
+		       "    --platform-os-emscripten  platform os is emscripten\n");
 		printf("\n");
 	};
 
@@ -114,8 +121,64 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		String libVersion;
 		String platformName = XYO_PLATFORM_NAME;
 
+		bool optPlatformCompilerMSVC = false;
+		bool optPlatformCompilerGCC = false;
+		bool optPlatform64bit = false;
+		bool optPlatform32bit = false;
+		bool optPlatformOSLinux = false;
+		bool optPlatformOSWindows = false;
+		bool optPlatformOSEmscripten = false;
+
 		bool forceMake = false;
 		bool noLib = false;
+
+		// ---
+
+#ifdef XYO_PLATFORM_COMPILER_MSVC
+		optPlatformCompilerMSVC = true;
+#endif
+#ifdef XYO_PLATFORM_COMPILER_GCC
+		optPlatformCompilerGCC = true;
+#endif
+
+#ifdef XYO_PLATFORM_64BIT
+		optPlatform64bit = true;
+#endif
+#ifdef XYO_PLATFORM_32BIT
+		optPlatform32bit = true;
+#endif
+
+#ifdef XYO_PLATFORM_OS_LINUX
+		optPlatformOSLinux = true;
+#endif
+#ifdef XYO_PLATFORM_OS_WINDOWS
+		optPlatformOSWindows = true;
+#endif
+#ifdef XYO_PLATFORM_OS_EMSCRIPTEN
+		optPlatformOSEmscripten = true;
+#endif
+
+		if (Shell::hasEnv("XYO_PLATFORM_COMPILER_MSVC")) {
+			optPlatformCompilerMSVC = true;
+		};
+		if (Shell::hasEnv("XYO_PLATFORM_COMPILER_GCC")) {
+			optPlatformCompilerGCC = true;
+		};
+		if (Shell::hasEnv("XYO_PLATFORM_64BIT")) {
+			optPlatform64bit = true;
+		};
+		if (Shell::hasEnv("XYO_PLATFORM_32BIT")) {
+			optPlatform32bit = true;
+		};
+		if (Shell::hasEnv("XYO_PLATFORM_OS_LINUX")) {
+			optPlatformOSLinux = true;
+		};
+		if (Shell::hasEnv("XYO_PLATFORM_OS_WINDOWS")) {
+			optPlatformOSWindows = true;
+		};
+		if (Shell::hasEnv("XYO_PLATFORM_OS_EMSCRIPTEN")) {
+			optPlatformOSEmscripten = true;
+		};
 
 		// ---
 
@@ -407,7 +470,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 					shellArguments.set(content);
 					for (m = 0; m < shellArguments.cmdN; ++m) {
 						cmdLine.push(shellArguments.cmdS[m]);
-					};					
+					};
 					continue;
 				};
 				printf("Error: file not found - %s\n", &cmdS[i][1]);
@@ -657,6 +720,28 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 					continue;
 				};
 
+				if (opt == "platform-compiler-msvc") {
+					optPlatformCompilerMSVC = true;
+				};
+				if (opt == "platform-compiler-gcc") {
+					optPlatformCompilerGCC = true;
+				};
+				if (opt == "platform-64bit") {
+					optPlatform64bit = true;
+				};
+				if (opt == "platform-32bit") {
+					optPlatform32bit = true;
+				};
+				if (opt == "platform-os-linux") {
+					optPlatformOSLinux = true;
+				};
+				if (opt == "platform-os-windows") {
+					optPlatformOSWindows = true;
+				};
+				if (opt == "platform-os-emscripten") {
+					optPlatformOSEmscripten = true;
+				};
+
 				continue;
 			};
 		};
@@ -754,37 +839,61 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 
 		// ---
 
+		if (optPlatformCompilerMSVC) {
+			optPlatformCompilerGCC = false;
+		};
+		if (optPlatform64bit) {
+			optPlatform32bit = false;
+		};
+		if (optPlatformOSWindows) {
+			optPlatformOSLinux = false;
+			optPlatformOSEmscripten = false;
+		};
+		if (optPlatformOSLinux) {
+			optPlatformOSWindows = false;
+		};
+		if (optPlatformOSEmscripten) {
+			optPlatformOSWindows = false;
+			optPlatformOSLinux = true;
+		};
+
 		TPointer<ICompiler> compiler;
-#ifdef XYO_PLATFORM_COMPILER_MSVC
-		compiler = TMemory<CompilerMSVC>::newMemory();
-#endif
-#ifdef XYO_PLATFORM_COMPILER_GCC
-		compiler = TMemory<CompilerGCC>::newMemory();
-#endif
+		if (optPlatformCompilerMSVC) {
+			compiler = TMemory<CompilerMSVC>::newMemory();
+		};
+		if (optPlatformCompilerGCC) {
+			compiler = TMemory<CompilerGCC>::newMemory();
+		};
 
-#ifdef XYO_PLATFORM_64BIT
-		compiler->is64Bit = true;
-#else
-		compiler->is64Bit = false;
-#endif
+		if (optPlatform64bit) {
+			compiler->is64Bit = true;
+		} else {
+			compiler->is64Bit = false;
+		};
 
-#ifdef XYO_PLATFORM_32BIT
-		compiler->is32Bit = true;
-#else
-		compiler->is32Bit = false;
-#endif
+		if (optPlatform32bit) {
+			compiler->is32Bit = true;
+		} else {
+			compiler->is32Bit = false;
+		};
 
-#ifdef XYO_PLATFORM_OS_LINUX
-		compiler->isOSLinux = true;
-#else
-		compiler->isOSLinux = false;
-#endif
+		if (optPlatformOSWindows) {
+			compiler->isOSWindows = true;
+		} else {
+			compiler->isOSWindows = false;
+		};
 
-#ifdef XYO_PLATFORM_OS_WINDOWS
-		compiler->isOSWindows = true;
-#else
-		compiler->isOSWindows = false;
-#endif
+		if (optPlatformOSLinux) {
+			compiler->isOSLinux = true;
+		} else {
+			compiler->isOSLinux = false;
+		};
+
+		if (optPlatformOSEmscripten) {
+			compiler->isOSEmscripten = true;
+		} else {
+			compiler->isOSEmscripten = false;
+		};
 
 		compiler->isStatic = false;
 		if (Shell::hasEnv("XYO_PLATFORM_COMPILE_STATIC")) {
