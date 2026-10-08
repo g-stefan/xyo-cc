@@ -11,5 +11,6 @@
 
 // -
 #include <XYO/CPPCompilerCommandDriver/CompilerOptions.cpp>
+#include <XYO/CPPCompilerCommandDriver/CompilerMake.cpp>
 #include <XYO/CPPCompilerCommandDriver/CompilerMSVC.cpp>
 #include <XYO/CPPCompilerCommandDriver/CompilerGCC.cpp>

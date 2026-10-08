@@ -32,8 +32,8 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		       "    --lib                     build library (.lib)\n"
 		       "    --dll                     build dynamic library (.dll)\n"
 		       "    --dll-x-static            build dynamic library with static linking (.dll)\n"
-		       "    --crt-dynamic             build using dynamic crt (default for dll)\n"
-		       "    --crt-static              build using static crt (default for lib)\n"
+		       "    --crt-dynamic             build using dynamic crt (default)\n"
+		       "    --crt-static              build using static crt\n"
 		       "    --threads=count           specify number of threads to use\n"
 		       "    --def=value               add value to definitions\n"
 		       "    --inc=path                add path to include in search\n"
@@ -50,8 +50,8 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		       "    --source-path=path        folder where source files (.hpp/.h/.cpp/.c) are stored, default ./\n"
 		       "    --output-path=path        location to output folder, default ./\n"
 		       "    --temp-path=path          location to temp folder, default to ./temp\n"
-		       "    --output-bin-path=path    location to output bin folder, default to ./output\n"
-		       "    --output-lib-path=path    location to output lib folder, default to ./output\n"
+		       "    --output-bin-path=path    location to output bin folder, default to output-path\n"
+		       "    --output-lib-path=path    location to output lib folder, default to output-path\n"
 		       "    --lib-name=name           use name for static library\n"
 		       "    --lib-version=version     library name use version\n"
 		       "    --force-make              force build all\n"
@@ -77,6 +77,120 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 	void Application::initMemory() {
 		String::initMemory();
 		TDynamicArray<String>::initMemory();
+	};
+
+	// JSON key to command line option
+	struct JSONOption {
+			const char *key;
+			const char *prefix;
+			bool isArray;
+	};
+
+	static const JSONOption jsonOptions[] = {
+	    {"project", "--project=", false},
+	    {"type", "--", false},
+	    {"defines", "--def=", true},
+	    {"includePath", "--inc=", true},
+	    {"hSource", "--src-h=", true},
+	    {"cSource", "--src-c=", true},
+	    {"hppSource", "--src-hpp=", true},
+	    {"cppSource", "--src-cpp=", true},
+	    {"crt", "--crt-", false},
+	    {"libraryPath", "--use-lib-path=", true},
+	    {"library", "--use-lib=", true},
+	    {"linkerDefinitionsFile", "--def-file=", false}};
+
+	static const JSONOption jsonResourcesOptions[] = {
+	    {"defines", "--rc-def=", true},
+	    {"includePath", "--rc-inc=", true},
+	    {"rcSource", "--rc-src=", true}};
+
+	static const JSONOption *findJSONOption(const JSONOption *options, size_t optionsLength, const String &key) {
+		size_t k;
+		for (k = 0; k < optionsLength; ++k) {
+			if (key == options[k].key) {
+				return &options[k];
+			};
+		};
+		return nullptr;
+	};
+
+	// String, or array of strings, to command line options
+	static bool pushJSONOption(const JSONOption &option, FileJSON::Value *item, TDynamicArray<String> &cmdLine) {
+		FileJSON::VString *vString;
+		if (!option.isArray) {
+			vString = TDynamicCast<FileJSON::VString *>(item);
+			if (!vString) {
+				return false;
+			};
+			cmdLine.push(String(option.prefix) + vString->value);
+			return true;
+		};
+		FileJSON::VArray *vArray = TDynamicCast<FileJSON::VArray *>(item);
+		if (!vArray) {
+			return false;
+		};
+		size_t k;
+		for (k = 0; k < vArray->value->length(); ++k) {
+			vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(k));
+			if (!vString) {
+				return false;
+			};
+			cmdLine.push(String(option.prefix) + vString->value);
+		};
+		return true;
+	};
+
+	static bool loadJSONArguments(const char *fileName, TDynamicArray<String> &cmdLine) {
+		TPointer<FileJSON::Value> json;
+		if (!FileJSON::load(fileName, json)) {
+			printf("Error: json file load - %s\n", fileName);
+			return false;
+		};
+		FileJSON::VAssociativeArray *jsonInfo = TDynamicCast<FileJSON::VAssociativeArray *>(json);
+		if (!jsonInfo) {
+			printf("Error: json no info - %s\n", fileName);
+			return false;
+		};
+		size_t k, m;
+		String key;
+		FileJSON::Value *item;
+		const JSONOption *option;
+		for (k = 0; k < jsonInfo->value->length(); ++k) {
+			key = jsonInfo->value->arrayKey->index(k);
+			item = jsonInfo->value->arrayValue->index(k);
+			if (key == "resources") {
+				FileJSON::VAssociativeArray *resources = TDynamicCast<FileJSON::VAssociativeArray *>(item);
+				if (!resources) {
+					printf("Error: json syntax - resources - %s\n", fileName);
+					return false;
+				};
+				String resourcesKey;
+				for (m = 0; m < resources->value->length(); ++m) {
+					resourcesKey = resources->value->arrayKey->index(m);
+					option = findJSONOption(jsonResourcesOptions, sizeof(jsonResourcesOptions) / sizeof(jsonResourcesOptions[0]), resourcesKey);
+					if (!option) {
+						printf("Error: json syntax - resources/items - %s\n", fileName);
+						return false;
+					};
+					if (!pushJSONOption(*option, resources->value->arrayValue->index(m), cmdLine)) {
+						printf("Error: json syntax - resources - %s - %s\n", resourcesKey.value(), fileName);
+						return false;
+					};
+				};
+				continue;
+			};
+			option = findJSONOption(jsonOptions, sizeof(jsonOptions) / sizeof(jsonOptions[0]), key);
+			if (!option) {
+				// unknown keys are ignored
+				continue;
+			};
+			if (!pushJSONOption(*option, item, cmdLine)) {
+				printf("Error: json syntax - %s - %s\n", key.value(), fileName);
+				return false;
+			};
+		};
+		return true;
 	};
 
 	int Application::main(int cmdN, char *cmdS[]) {
@@ -128,6 +242,11 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		bool optPlatformOSLinux = false;
 		bool optPlatformOSWindows = false;
 		bool optPlatformOSEmscripten = false;
+
+		// selected on the command line, overrides the build and environment defaults, last one wins
+		int cmdPlatformCompiler = CompilerType::None;
+		int cmdPlatformBits = 0;
+		String cmdPlatformOS;
 
 		bool forceMake = false;
 		bool noLib = false;
@@ -196,274 +315,29 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			};
 		};
 
-		Shell::getEnv("XYO_PLATFORM_COMPILE_DEFINE").explode(" ", cppDefine);
+		{
+			TDynamicArray<String> envDefine;
+			Shell::getEnv("XYO_PLATFORM_COMPILE_DEFINE").explode(" ", envDefine);
+			for (i = 0; i < envDefine.length(); ++i) {
+				// empty on repeated spaces
+				if (envDefine[i].isEmpty()) {
+					continue;
+				};
+				cppDefine.push(envDefine[i]);
+			};
+		};
 
 		// ---
 
 		for (i = 1; i < cmdN; ++i) {
 			if (StringCore::beginWith(cmdS[i], "@")) {
-				String content;
 				if (StringCore::endsWith(cmdS[i], ".json")) {
-					TPointer<FileJSON::Value> json;
-					if (!FileJSON::load(&cmdS[i][1], json)) {
-						printf("Error: json file load - %s\n", &cmdS[i][1]);
+					if (!loadJSONArguments(&cmdS[i][1], cmdLine)) {
 						return 1;
 					};
-					FileJSON::VAssociativeArray *jsonInfo = TDynamicCast<FileJSON::VAssociativeArray *>(json);
-					if (!jsonInfo) {
-						printf("Error: json no info - %s\n", &cmdS[i][1]);
-						return 1;
-					};
-					int k, m, j;
-					String key;
-					FileJSON::Value *item;
-					FileJSON::VString *vString;
-					FileJSON::VArray *vArray;
-					FileJSON::VAssociativeArray *vAssociativeArray;
-					for (k = 0; k < jsonInfo->value->length(); ++k) {
-						key = jsonInfo->value->arrayKey->index(k);
-						item = jsonInfo->value->arrayValue->index(k);
-						if (key == "project") {
-							vString = TDynamicCast<FileJSON::VString *>(item);
-							if (vString) {
-								cmdLine.push(String("--project=") + vString->value);
-								continue;
-							};
-							printf("Error: json syntax - project - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "type") {
-							vString = TDynamicCast<FileJSON::VString *>(item);
-							if (vString) {
-								cmdLine.push(String("--") + vString->value);
-								continue;
-							};
-							printf("Error: json syntax - type - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "defines") {
-							vArray = TDynamicCast<FileJSON::VArray *>(item);
-							if (vArray) {
-								for (m = 0; m < vArray->value->length(); ++m) {
-									vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-									if (vString) {
-										cmdLine.push(String("--def=") + vString->value);
-										continue;
-									};
-									printf("Error: json syntax - defines/items -  %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - defines - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "includePath") {
-							vArray = TDynamicCast<FileJSON::VArray *>(item);
-							if (vArray) {
-								for (m = 0; m < vArray->value->length(); ++m) {
-									vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-									if (vString) {
-										cmdLine.push(String("--inc=") + vString->value);
-										continue;
-									};
-									printf("Error: json syntax - includePath/items - %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - includePath - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "hSource") {
-							vArray = TDynamicCast<FileJSON::VArray *>(item);
-							if (vArray) {
-								for (m = 0; m < vArray->value->length(); ++m) {
-									vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-									if (vString) {
-										cmdLine.push(String("--src-h=") + vString->value);
-										continue;
-									};
-									printf("Error: json syntax - hSource/items - %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - hSource - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "cSource") {
-							vArray = TDynamicCast<FileJSON::VArray *>(item);
-							if (vArray) {
-								for (m = 0; m < vArray->value->length(); ++m) {
-									vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-									if (vString) {
-										cmdLine.push(String("--src-c=") + vString->value);
-										continue;
-									};
-									printf("Error: json syntax - cSource/items - %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - cSource - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "hppSource") {
-							vArray = TDynamicCast<FileJSON::VArray *>(item);
-							if (vArray) {
-								for (m = 0; m < vArray->value->length(); ++m) {
-									vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-									if (vString) {
-										cmdLine.push(String("--src-hpp=") + vString->value);
-										continue;
-									};
-									printf("Error: json syntax - hppSource/items - %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - hppSource - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "cppSource") {
-							vArray = TDynamicCast<FileJSON::VArray *>(item);
-							if (vArray) {
-								for (m = 0; m < vArray->value->length(); ++m) {
-									vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-									if (vString) {
-										cmdLine.push(String("--src-cpp=") + vString->value);
-										continue;
-									};
-									printf("Error: json syntax - cppSource/items - %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - cppSource - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "resources") {
-							vAssociativeArray = TDynamicCast<FileJSON::VAssociativeArray *>(item);
-							if (vAssociativeArray) {
-								String vKey;
-								FileJSON::Value *vItem;
-								for (j = 0; j < vAssociativeArray->value->length(); ++j) {
-									vKey = vAssociativeArray->value->arrayKey->index(j);
-									vItem = vAssociativeArray->value->arrayValue->index(j);
-									if (vKey == "defines") {
-										vArray = TDynamicCast<FileJSON::VArray *>(vItem);
-										if (vArray) {
-											for (m = 0; m < vArray->value->length(); ++m) {
-												vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-												if (vString) {
-													cmdLine.push(String("--rc-def=") + vString->value);
-													continue;
-												};
-												printf("Error: json syntax - resources - defines/items - %s\n", &cmdS[i][1]);
-												return 1;
-											};
-											continue;
-										};
-										printf("Error: json syntax - resources - defines - %s\n", &cmdS[i][1]);
-										return 1;
-									};
-									if (vKey == "includePath") {
-										vArray = TDynamicCast<FileJSON::VArray *>(vItem);
-										if (vArray) {
-											for (m = 0; m < vArray->value->length(); ++m) {
-												vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-												if (vString) {
-													cmdLine.push(String("--rc-inc=") + vString->value);
-													continue;
-												};
-												printf("Error: json syntax - resources - includePath/items - %s\n", &cmdS[i][1]);
-												return 1;
-											};
-											continue;
-										};
-										printf("Error: json syntax - resources - includePath - %s\n", &cmdS[i][1]);
-										return 1;
-									};
-									if (vKey == "rcSource") {
-										vArray = TDynamicCast<FileJSON::VArray *>(vItem);
-										if (vArray) {
-											for (m = 0; m < vArray->value->length(); ++m) {
-												vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-												if (vString) {
-													cmdLine.push(String("--rc-src=") + vString->value);
-													continue;
-												};
-												printf("Error: json syntax - resources - rcSource/items - %s\n", &cmdS[i][1]);
-												return 1;
-											};
-											continue;
-										};
-										printf("Error: json syntax - resources - rcSource - %s\n", &cmdS[i][1]);
-										return 1;
-									};
-									printf("Error: json syntax - resources/items - %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - resources - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "crt") {
-							vString = TDynamicCast<FileJSON::VString *>(item);
-							if (vString) {
-								cmdLine.push(String("--crt-") + vString->value);
-								continue;
-							};
-							printf("Error: json syntax - crt - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "libraryPath") {
-							vArray = TDynamicCast<FileJSON::VArray *>(item);
-							if (vArray) {
-								for (m = 0; m < vArray->value->length(); ++m) {
-									vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-									if (vString) {
-										cmdLine.push(String("--use-lib-path=") + vString->value);
-										continue;
-									};
-									printf("Error: json syntax - libraryPath/items - %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - libraryPath - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "library") {
-							vArray = TDynamicCast<FileJSON::VArray *>(item);
-							if (vArray) {
-								for (m = 0; m < vArray->value->length(); ++m) {
-									vString = TDynamicCast<FileJSON::VString *>(vArray->value->index(m));
-									if (vString) {
-										cmdLine.push(String("--use-lib=") + vString->value);
-										continue;
-									};
-									printf("Error: json syntax - library/items - %s\n", &cmdS[i][1]);
-									return 1;
-								};
-								continue;
-							};
-							printf("Error: json syntax - library - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-						if (key == "linkerDefinitionsFile") {
-							vString = TDynamicCast<FileJSON::VString *>(item);
-							if (vString) {
-								cmdLine.push(String("--def-file=") + vString->value);
-								continue;
-							};
-							printf("Error: json syntax - linkerDefinitionsFile - %s\n", &cmdS[i][1]);
-							return 1;
-						};
-					};
+					continue;
 				};
+				String content;
 				if (Shell::fileGetContents(&cmdS[i][1], content)) {
 					XYO::System::ShellArguments shellArguments;
 					int m;
@@ -670,6 +544,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 					outputPath = optValue;
 					outputBinPath = outputPath;
 					outputLibPath = outputPath;
+					continue;
 				};
 				if (opt == "temp-path") {
 					if (optValue.isEmpty()) {
@@ -721,29 +596,39 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				};
 
 				if (opt == "platform-compiler-msvc") {
-					optPlatformCompilerMSVC = true;
+					cmdPlatformCompiler = CompilerType::MSVC;
+					continue;
 				};
 				if (opt == "platform-compiler-gcc") {
-					optPlatformCompilerGCC = true;
+					cmdPlatformCompiler = CompilerType::GCC;
+					continue;
 				};
 				if (opt == "platform-64bit") {
-					optPlatform64bit = true;
+					cmdPlatformBits = 64;
+					continue;
 				};
 				if (opt == "platform-32bit") {
-					optPlatform32bit = true;
+					cmdPlatformBits = 32;
+					continue;
 				};
 				if (opt == "platform-os-linux") {
-					optPlatformOSLinux = true;
+					cmdPlatformOS = "linux";
+					continue;
 				};
 				if (opt == "platform-os-windows") {
-					optPlatformOSWindows = true;
+					cmdPlatformOS = "windows";
+					continue;
 				};
 				if (opt == "platform-os-emscripten") {
-					optPlatformOSEmscripten = true;
+					cmdPlatformOS = "emscripten";
+					continue;
 				};
 
-				continue;
+				printf("Error: unknown option - %s\n", cmdLine[i].value());
+				return 1;
 			};
+			printf("Error: unknown argument - %s\n", cmdLine[i].value());
+			return 1;
 		};
 
 		if (cmdLine.length() == 0) {
@@ -837,7 +722,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			cppDefine.push(defInternal);
 		};
 
-		// ---
+		// --- platform: build defaults, environment, platform name, command line
 
 		if (optPlatformCompilerMSVC) {
 			optPlatformCompilerGCC = false;
@@ -852,6 +737,32 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		if (optPlatformOSLinux) {
 			optPlatformOSWindows = false;
 		};
+
+		size_t strIndex;
+		if (platformName.indexOf("win64-msvc", 0, strIndex) || platformName.indexOf("win32-msvc", 0, strIndex)) {
+			optPlatformCompilerMSVC = true;
+			optPlatformCompilerGCC = false;
+			optPlatformOSWindows = true;
+			optPlatformOSLinux = false;
+			optPlatformOSEmscripten = false;
+			optPlatform64bit = platformName.indexOf("win64-msvc", 0, strIndex);
+			optPlatform32bit = !optPlatform64bit;
+		};
+
+		if (cmdPlatformCompiler != CompilerType::None) {
+			optPlatformCompilerMSVC = (cmdPlatformCompiler == CompilerType::MSVC);
+			optPlatformCompilerGCC = (cmdPlatformCompiler == CompilerType::GCC);
+		};
+		if (cmdPlatformBits != 0) {
+			optPlatform64bit = (cmdPlatformBits == 64);
+			optPlatform32bit = (cmdPlatformBits == 32);
+		};
+		if (!cmdPlatformOS.isEmpty()) {
+			optPlatformOSWindows = (cmdPlatformOS == "windows");
+			optPlatformOSLinux = (cmdPlatformOS == "linux");
+			optPlatformOSEmscripten = (cmdPlatformOS == "emscripten");
+		};
+
 		if (optPlatformOSEmscripten) {
 			optPlatformOSWindows = false;
 			optPlatformOSLinux = true;
@@ -860,40 +771,18 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 		TPointer<ICompiler> compiler;
 		if (optPlatformCompilerMSVC) {
 			compiler = TMemory<CompilerMSVC>::newMemory();
-		};
-		if (optPlatformCompilerGCC) {
+		} else if (optPlatformCompilerGCC) {
 			compiler = TMemory<CompilerGCC>::newMemory();
+		} else {
+			printf("Error: no compiler, use --platform-compiler-msvc or --platform-compiler-gcc\n");
+			return 1;
 		};
 
-		if (optPlatform64bit) {
-			compiler->is64Bit = true;
-		} else {
-			compiler->is64Bit = false;
-		};
-
-		if (optPlatform32bit) {
-			compiler->is32Bit = true;
-		} else {
-			compiler->is32Bit = false;
-		};
-
-		if (optPlatformOSWindows) {
-			compiler->isOSWindows = true;
-		} else {
-			compiler->isOSWindows = false;
-		};
-
-		if (optPlatformOSLinux) {
-			compiler->isOSLinux = true;
-		} else {
-			compiler->isOSLinux = false;
-		};
-
-		if (optPlatformOSEmscripten) {
-			compiler->isOSEmscripten = true;
-		} else {
-			compiler->isOSEmscripten = false;
-		};
+		compiler->is64Bit = optPlatform64bit;
+		compiler->is32Bit = optPlatform32bit;
+		compiler->isOSWindows = optPlatformOSWindows;
+		compiler->isOSLinux = optPlatformOSLinux;
+		compiler->isOSEmscripten = optPlatformOSEmscripten;
 
 		compiler->isStatic = false;
 		if (Shell::hasEnv("XYO_PLATFORM_COMPILE_STATIC")) {
@@ -904,24 +793,24 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 			};
 		};
 
-		size_t strIndex;
-		if (platformName.indexOf("win64-msvc", 0, strIndex)) {
-			if (compiler->type != CompilerType::MSVC) {
-				compiler = TMemory<CompilerMSVC>::newMemory();
-			};
-			compiler->isOSWindows = true;
-			compiler->isOSLinux = false;
-			compiler->is64Bit = true;
-			compiler->is32Bit = false;
+		// --- sources
+
+		// headers are dependencies of all sources
+		TDynamicArray<String> incFiles;
+		for (k = 0; k < hFiles.length(); ++k) {
+			incFiles.push(hFiles[k]);
 		};
-		if (platformName.indexOf("win32-msvc", 0, strIndex)) {
-			if (compiler->type != CompilerType::MSVC) {
-				compiler = TMemory<CompilerMSVC>::newMemory();
+		for (k = 0; k < hppFiles.length(); ++k) {
+			incFiles.push(hppFiles[k]);
+		};
+
+		// C and C++ sources mixed, the C++ compiler takes precedence, C sources are compiled as C++
+		if ((!cSource.isEmpty()) && (!cppSource.isEmpty())) {
+			printf("Info: C and C++ sources mixed, C sources are compiled as C++\n");
+			for (k = 0; k < cSource.length(); ++k) {
+				cppSource.push(cSource[k]);
 			};
-			compiler->isOSWindows = true;
-			compiler->isOSLinux = false;
-			compiler->is64Bit = false;
-			compiler->is32Bit = true;
+			cSource.empty();
 		};
 
 		// ---
@@ -940,7 +829,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption | CompilerOptions::StaticLibrary,
 				        cppDefine,
 				        incPath,
-				        hFiles,
+				        incFiles,
 				        cSource,
 				        rcDefine,
 				        incPathRC,
@@ -965,7 +854,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption | CompilerOptions::StaticLibrary,
 				        cppDefine,
 				        incPath,
-				        hppFiles,
+				        incFiles,
 				        cppSource,
 				        rcDefine,
 				        incPathRC,
@@ -1001,7 +890,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption | CompilerOptions::DynamicLibrary | dllOption,
 				        cppDefine,
 				        incPath,
-				        hFiles,
+				        incFiles,
 				        cSource,
 				        rcDefine,
 				        incPathRC,
@@ -1027,7 +916,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption | CompilerOptions::DynamicLibrary | dllOption,
 				        cppDefine,
 				        incPath,
-				        hppFiles,
+				        incFiles,
 				        cppSource,
 				        rcDefine,
 				        incPathRC,
@@ -1058,7 +947,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption | (compiler->isStatic ? CompilerOptions::StaticLibrary : CompilerOptions::DynamicLibrary),
 				        cppDefine,
 				        incPath,
-				        hFiles,
+				        incFiles,
 				        cSource,
 				        rcDefine,
 				        incPathRC,
@@ -1081,7 +970,7 @@ namespace XYO::CPPCompilerCommandDriver::Application {
 				        (isRelease ? CompilerOptions::Release : CompilerOptions::Debug) | crtOption | (compiler->isStatic ? CompilerOptions::StaticLibrary : CompilerOptions::DynamicLibrary),
 				        cppDefine,
 				        incPath,
-				        hppFiles,
+				        incFiles,
 				        cppSource,
 				        rcDefine,
 				        incPathRC,

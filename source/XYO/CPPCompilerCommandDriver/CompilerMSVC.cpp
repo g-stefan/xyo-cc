@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <XYO/CPPCompilerCommandDriver/CompilerMSVC.hpp>
+#include <XYO/CPPCompilerCommandDriver/CompilerMake.hpp>
 
 namespace XYO::CPPCompilerCommandDriver {
 
@@ -27,63 +28,144 @@ namespace XYO::CPPCompilerCommandDriver {
 	    int indexLn) {
 		options = filterOptions(options);
 
-		String strOptions;
-		if (options & CompilerOptions::Release) {
-			strOptions += "R";
-		};
-		if (options & CompilerOptions::Debug) {
-			strOptions += "D";
-		};
-		if (options & CompilerOptions::CRTStatic) {
-			strOptions += "S";
-		};
-		if (options & CompilerOptions::CRTDynamic) {
-			strOptions += "D";
-		};
-		if (options & CompilerOptions::StaticLibrary) {
-			strOptions += "S";
-		};
-		if (options & CompilerOptions::DynamicLibrary) {
-			strOptions += "D";
-		};
-
 		String retV = tmpPath;
 		retV << Shell::pathSeparator << Shell::getFileName(project) << ".";
 		retV << (NumberX::leftPadByDigits(index, indexLn)).value() << ".";
-		retV << strOptions << ".";
+		retV << CompilerMake::optionsTag(options) << ".";
 		retV << Shell::getFileName(fileName) << ".obj";
 
 		return retV;
 	};
 
-	bool CompilerMSVC::cppToObj(
+	static String compilerMSVCCommand(const char *envName) {
+		String retV = Shell::getEnv(envName);
+		if (retV.length() == 0) {
+			retV = "cl.exe";
+		};
+		return retV;
+	};
+
+	static void compilerMSVCMachine(String &content, bool is32Bit, bool is64Bit) {
+		if (is64Bit) {
+			content << " /MACHINE:X64";
+		};
+		if (is32Bit) {
+			content << " /MACHINE:X86";
+		};
+	};
+
+	static void compilerMSVCLinkOptions(String &content, int options) {
+		content << " /INCREMENTAL:NO /OPT:REF /OPT:ICF";
+		if (options & CompilerOptions::Release) {
+			content << " /RELEASE";
+			if (options & CompilerOptions::CRTDynamic) {
+				content += " /nodefaultlib:libcmt /defaultlib:msvcrt";
+			};
+			if (options & CompilerOptions::CRTStatic) {
+				content += " /nodefaultlib:msvcrt /defaultlib:libcmt";
+			};
+		};
+		if (options & CompilerOptions::Debug) {
+			content << " /DEBUG";
+			if (options & CompilerOptions::CRTDynamic) {
+				content += " /nodefaultlib:libcmtd /defaultlib:msvcrtd";
+			};
+			if (options & CompilerOptions::CRTStatic) {
+				content += " /nodefaultlib:msvcrtd /defaultlib:libcmtd";
+			};
+		};
+	};
+
+	static void compilerMSVCLibDependency(
+	    String &content,
+	    TDynamicArray<String> &objFiles,
+	    TDynamicArray<String> &libDependencyPath,
+	    TDynamicArray<String> &libDependency) {
+		size_t k;
+		for (k = 0; k < objFiles.length(); ++k) {
+			content << " \"" << objFiles[k].replace("/", "\\") << "\"";
+		};
+		for (k = 0; k < libDependencyPath.length(); ++k) {
+			content << " /LIBPATH:\"" << libDependencyPath[k] << "\"";
+		};
+		for (k = 0; k < libDependency.length(); ++k) {
+			if (libDependency[k][0] == ':') {
+				content << " " << libDependency[k].substring(1) << ".lib";
+				continue;
+			};
+			content << " " << libDependency[k] << ".lib";
+		};
+
+		content << " user32.lib";
+		content << " gdi32.lib";
+		content << " ws2_32.lib";
+		content << " ole32.lib";
+		content << " wininet.lib";
+		content << " advapi32.lib";
+		content << " oleaut32.lib";
+		content << " shell32.lib";
+		content << " iphlpapi.lib";
+	};
+
+	// Write the response file and run the tool, skip if nothing changed
+	static bool compilerMSVCRun(
+	    const char *tool,
+	    const String &target,
+	    const String &cmdFile,
+	    const String &content,
+	    TDynamicArray<String> &objFiles,
+	    bool echoCmd,
+	    bool force) {
+		if (!force) {
+			if (!Shell::isChanged(target, objFiles)) {
+				if (!CompilerMake::isContentChanged(cmdFile, content)) {
+					return true;
+				};
+			};
+		};
+
+		if (!Shell::filePutContents(cmdFile, content)) {
+			return false;
+		};
+
+		String cmd = tool;
+		cmd << " @\"" << cmdFile << "\"";
+		if (echoCmd) {
+			printf("%s\n", cmd.value());
+		};
+		if (Shell::system(cmd) != 0) {
+			// build again next time
+			Shell::remove(cmdFile);
+			return false;
+		};
+		return true;
+	};
+
+	static bool compilerMSVCToObj(
+	    const String &compiler,
+	    const char *language,
 	    int options,
-	    String cppFile,
+	    String srcFile,
 	    String objFile,
-	    TDynamicArray<String> &cppDefine,
+	    TDynamicArray<String> &define,
 	    TDynamicArray<String> &incPath,
 	    int index,
 	    int indexLn,
+	    bool is32Bit,
 	    bool echoCmd) {
 		String cmd;
 		String content;
+		size_t k;
 
-		int k;
-		options = filterOptions(options);
 		if (!Shell::mkdirFilePath(objFile)) {
 			return false;
 		};
 
-		cppFile = cppFile.replace("/", "\\");
+		srcFile = srcFile.replace("/", "\\");
 		objFile = objFile.replace("/", "\\");
 
-		String cxx = Shell::getEnv("CXX");
-		if (cxx.length() == 0) {
-			cxx = "cl.exe";
-		};
-
-		cmd = cxx;
-		content = " /nologo /std:c++17";
+		content = " /nologo";
+		content << language;
 
 		if (options & CompilerOptions::Release) {
 			content += " /DXYO_PLATFORM_COMPILE_RELEASE";
@@ -95,7 +177,7 @@ namespace XYO::CPPCompilerCommandDriver {
 				content += " /MT";
 				content += " /DXYO_PLATFORM_COMPILE_CRT_STATIC";
 			};
-			content += " /O2 /Oi /Oy /Gy /Gd /EHsc /GR /TP /c";
+			content += " /O2 /Oi /Oy /Gy /Gd /EHsc /GR /c";
 		};
 		if (options & CompilerOptions::Debug) {
 			content += " /DXYO_PLATFORM_COMPILE_DEBUG";
@@ -107,7 +189,7 @@ namespace XYO::CPPCompilerCommandDriver {
 				content += " /MTd";
 				content += " /DXYO_PLATFORM_COMPILE_CRT_STATIC";
 			};
-			content += " /Zi /EHsc /GR /TP /c";
+			content += " /Zi /EHsc /GR /c";
 		};
 		if (options & CompilerOptions::StaticLibrary) {
 			content += " /DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
@@ -123,27 +205,54 @@ namespace XYO::CPPCompilerCommandDriver {
 		for (k = 0; k < incPath.length(); ++k) {
 			content << " /I\"" << incPath[k].replace("/", "\\") << "\"";
 		};
-		for (k = 0; k < cppDefine.length(); ++k) {
-			content << " /D\"" << cppDefine[k] << "\"";
+		for (k = 0; k < define.length(); ++k) {
+			content << " /D\"" << define[k] << "\"";
 		};
 		if (options & CompilerOptions::Debug) {
-			content << " /Fd\"" << objFile.replace(".obj", ".pdb") << "\"";
+			content << " /Fd\"" << CompilerMake::replaceSuffix(objFile, ".obj", ".pdb") << "\"";
 		};
 
 		if (is32Bit) {
 			content << " /arch:SSE2";
 		};
 		content << " /Fo\"" << objFile << "\"";
-		content << " \"" << cppFile << "\"";
+		content << " \"" << srcFile << "\"";
 
-		String cmdFile = objFile.replace(".cpp.obj", ".cpp2obj");
-		Shell::filePutContents(cmdFile, content);
-		cmd << " @" << cmdFile;
+		String cmdFile = CompilerMake::commandFilename(objFile);
+		if (!Shell::filePutContents(cmdFile, content)) {
+			return false;
+		};
+		cmd = compiler;
+		cmd << " @\"" << cmdFile << "\"";
 
 		if (echoCmd) {
 			printf("[%s/%d] %s\n", (NumberX::leftPadByDigits(index, indexLn)).value(), indexLn, cmd.value());
 		};
 		return (Shell::system(cmd) == 0);
+	};
+
+	bool CompilerMSVC::cppToObj(
+	    int options,
+	    String cppFile,
+	    String objFile,
+	    TDynamicArray<String> &cppDefine,
+	    TDynamicArray<String> &incPath,
+	    int index,
+	    int indexLn,
+	    bool echoCmd) {
+		// /TP - all sources are C++, also C sources mixed with C++ sources
+		return compilerMSVCToObj(
+		    compilerMSVCCommand("CXX"),
+		    " /std:c++17 /TP",
+		    filterOptions(options),
+		    cppFile,
+		    objFile,
+		    cppDefine,
+		    incPath,
+		    index,
+		    indexLn,
+		    is32Bit,
+		    echoCmd);
 	};
 
 	bool CompilerMSVC::makeObjToLib(
@@ -161,10 +270,8 @@ namespace XYO::CPPCompilerCommandDriver {
 	    bool force) {
 		options = filterOptions(options);
 
-		String cmd;
-		int k;
+		size_t k;
 		String content;
-		bool toMakeObjToLib;
 		String libNameOut;
 
 		if (objFiles.isEmpty()) {
@@ -186,105 +293,44 @@ namespace XYO::CPPCompilerCommandDriver {
 		tmpPath = tmpPath.replace("/", "\\");
 
 		if (options & CompilerOptions::StaticLibrary) {
-			libNameOut = libPath << "\\" << libName << ".lib";
-			if (!force) {
-				if (!Shell::isChanged(libNameOut, objFiles)) {
-					return true;
-				};
-			};
+			libNameOut = libPath + "\\" + libName + ".lib";
 
-			if (is64Bit) {
-				content << "/NOLOGO /OUT:\"" << libNameOut << "\" /MACHINE:X64";
-			};
-			if (is32Bit) {
-				content << "/NOLOGO /OUT:\"" << libNameOut << "\" /MACHINE:X86";
-			};
-
+			content << "/NOLOGO /OUT:\"" << libNameOut << "\"";
+			compilerMSVCMachine(content, is32Bit, is64Bit);
 			for (k = 0; k < objFiles.length(); ++k) {
 				content << " \"" << objFiles[k].replace("/", "\\") << "\"";
 			};
 
-			Shell::filePutContents(tmpPath + "\\" + libName + ".obj2lib", content);
-			cmd = "lib.exe @";
-			cmd << tmpPath + "\\" + libName + ".obj2lib";
+			return compilerMSVCRun("lib.exe", libNameOut, tmpPath + "\\" + libName + ".obj2lib", content, objFiles, echoCmd, force);
 		};
 
 		if (options & CompilerOptions::DynamicLibrary) {
-			libNameOut = binPath << "\\" << libName;
+			libNameOut = binPath + "\\" + libName;
 			if (!version.isEmpty()) {
 				libNameOut << "-" << version;
 			};
 			libNameOut << ".dll";
-			if (!force) {
-				if (!Shell::isChanged(libNameOut, objFiles)) {
-					return true;
-				};
-			};
 
+			content << "/NOLOGO /OUT:\"" << libNameOut << "\"";
+			compilerMSVCMachine(content, is32Bit, is64Bit);
 			if (is64Bit) {
-				content << "/NOLOGO /OUT:\"" << libNameOut << "\" /MACHINE:X64";
 				content << " /ENTRY:_DllMainCRTStartup";
 			};
 			if (is32Bit) {
-				content << "/NOLOGO /OUT:\"" << libNameOut << "\" /MACHINE:X86";
 				content << " /ENTRY:_DllMainCRTStartup@12";
 			};
-			content << " /DLL /INCREMENTAL:NO /OPT:REF /OPT:ICF";
-			if (options & CompilerOptions::Release) {
-				content << " /RELEASE";
-				if (options & CompilerOptions::CRTDynamic) {
-					content += " /nodefaultlib:libcmt /defaultlib:msvcrt";
-				};
-				if (options & CompilerOptions::CRTStatic) {
-					content += " /nodefaultlib:msvcrt /defaultlib:libcmt";
-				};
-			};
-			if (options & CompilerOptions::Debug) {
-				content << " /DEBUG";
-				if (options & CompilerOptions::CRTDynamic) {
-					content += " /nodefaultlib:libcmtd /defaultlib:msvcrtd";
-				};
-				if (options & CompilerOptions::CRTStatic) {
-					content += " /nodefaultlib:msvcrtd /defaultlib:libcmtd";
-				};
-			};
+			content << " /DLL";
+			compilerMSVCLinkOptions(content, options);
 			if (!defFile.isEmpty()) {
 				content << " /DEF:\"" << defFile << "\"";
 			};
 			content << " /implib:\"" << libPath << "\\" << libName << ".lib\"";
-			for (k = 0; k < objFiles.length(); ++k) {
-				content << " \"" << objFiles[k].replace("/", "\\") << "\"";
-			};
-			for (k = 0; k < libDependencyPath.length(); ++k) {
-				content << " /LIBPATH:\"" << libDependencyPath[k] << "\"";
-			};
-			for (k = 0; k < libDependency.length(); ++k) {
-				if (libDependency[k][0] == ':') {
-					content << " " << libDependency[k].substring(1) << ".lib";
-					continue;
-				};
-				content << " " << libDependency[k] << ".lib";
-			};
+			compilerMSVCLibDependency(content, objFiles, libDependencyPath, libDependency);
 
-			content << " user32.lib";
-			content << " gdi32.lib";
-			content << " ws2_32.lib";
-			content << " ole32.lib";
-			content << " wininet.lib";
-			content << " advapi32.lib";
-			content << " ole32.lib";
-			content << " oleaut32.lib";
-			content << " shell32.lib";
-			content << " iphlpapi.lib";
+			return compilerMSVCRun("link.exe", libNameOut, tmpPath + "\\" + libName + ".obj2dll", content, objFiles, echoCmd, force);
+		};
 
-			Shell::filePutContents(tmpPath + "\\" + libName + ".obj2dll", content);
-			cmd = "link.exe @";
-			cmd << tmpPath + "\\" + libName + ".obj2dll";
-		};
-		if (echoCmd) {
-			printf("%s\n", cmd.value());
-		};
-		return (Shell::system(cmd) == 0);
+		return false;
 	};
 
 	bool CompilerMSVC::makeObjToExe(
@@ -299,8 +345,6 @@ namespace XYO::CPPCompilerCommandDriver {
 	    bool force) {
 		options = filterOptions(options);
 
-		String cmd;
-		int k;
 		String content;
 		String exeNameOut;
 
@@ -318,71 +362,17 @@ namespace XYO::CPPCompilerCommandDriver {
 		binPath = binPath.replace("/", "\\");
 		tmpPath = tmpPath.replace("/", "\\");
 
-		exeNameOut = binPath << "\\" << exeName << ".exe";
-		if (!force) {
-			if (!Shell::isChanged(exeNameOut, objFiles)) {
-				return true;
-			};
+		exeNameOut = binPath + "\\" + exeName;
+		if (!exeNameOut.endsWith(".exe")) {
+			exeNameOut << ".exe";
 		};
 
-		if (is64Bit) {
-			content << "/NOLOGO /OUT:\"" << exeNameOut << "\" /MACHINE:X64";
-		};
-		if (is32Bit) {
-			content << "/NOLOGO /OUT:\"" << exeNameOut << "\" /MACHINE:X86";
-		};
-		content << " /INCREMENTAL:NO /OPT:REF /OPT:ICF";
-		if (options & CompilerOptions::Release) {
-			content << " /RELEASE";
-			if (options & CompilerOptions::CRTDynamic) {
-				content += " /nodefaultlib:libcmt /defaultlib:msvcrt";
-			};
-			if (options & CompilerOptions::CRTStatic) {
-				content += " /nodefaultlib:msvcrt /defaultlib:libcmt";
-			};
-		};
-		if (options & CompilerOptions::Debug) {
-			content << " /DEBUG";
-			if (options & CompilerOptions::CRTDynamic) {
-				content += " /nodefaultlib:libcmtd /defaultlib:msvcrtd";
-			};
-			if (options & CompilerOptions::CRTStatic) {
-				content += " /nodefaultlib:msvcrtd /defaultlib:libcmtd";
-			};
-		};
-		for (k = 0; k < objFiles.length(); ++k) {
-			content << " \"" << objFiles[k].replace("/", "\\") << "\"";
-		};
-		for (k = 0; k < libDependencyPath.length(); ++k) {
-			content << " /LIBPATH:\"" << libDependencyPath[k] << "\"";
-		};
-		for (k = 0; k < libDependency.length(); ++k) {
-			if (libDependency[k][0] == ':') {
-				content << " " << libDependency[k].substring(1) << ".lib";
-				continue;
-			};
-			content << " " << libDependency[k] << ".lib";
-		};
+		content << "/NOLOGO /OUT:\"" << exeNameOut << "\"";
+		compilerMSVCMachine(content, is32Bit, is64Bit);
+		compilerMSVCLinkOptions(content, options);
+		compilerMSVCLibDependency(content, objFiles, libDependencyPath, libDependency);
 
-		content << " user32.lib";
-		content << " gdi32.lib";
-		content << " ws2_32.lib";
-		content << " ole32.lib";
-		content << " wininet.lib";
-		content << " advapi32.lib";
-		content << " ole32.lib";
-		content << " oleaut32.lib";
-		content << " shell32.lib";
-		content << " iphlpapi.lib";
-
-		Shell::filePutContents(tmpPath + "\\" + exeName + ".obj2exe", content);
-		cmd = "link.exe @";
-		cmd << tmpPath + "\\" + exeName + ".obj2exe";
-
-		if (echoCmd) {
-			printf("%s\n", cmd.value());
-		};
-		return (Shell::system(cmd) == 0);
+		return compilerMSVCRun("link.exe", exeNameOut, tmpPath + "\\" + exeName + ".obj2exe", content, objFiles, echoCmd, force);
 	};
 
 	bool CompilerMSVC::rcToRes(
@@ -392,7 +382,7 @@ namespace XYO::CPPCompilerCommandDriver {
 	    TDynamicArray<String> &incPath,
 	    bool echoCmd) {
 		String cmd;
-		int k;
+		size_t k;
 		if (!Shell::mkdirFilePath(resFile)) {
 			return false;
 		};
@@ -428,13 +418,7 @@ namespace XYO::CPPCompilerCommandDriver {
 		objFile = objFile.replace("/", "\\");
 
 		cmd = "cvtres.exe /NOLOGO";
-
-		if (is64Bit) {
-			cmd << " /MACHINE:X64";
-		};
-		if (is32Bit) {
-			cmd << " /MACHINE:X86";
-		};
+		compilerMSVCMachine(cmd, is32Bit, is64Bit);
 		cmd << " /OUT:\"" << objFile << "\" \"" << resFile << "\"";
 
 		if (echoCmd) {
@@ -452,7 +436,7 @@ namespace XYO::CPPCompilerCommandDriver {
 	    bool force) {
 		bool toMake;
 
-		String resFile = objFile.replace(".obj", ".res");
+		String resFile = CompilerMake::replaceSuffix(objFile, ".obj", ".res");
 		toMake = false;
 		if (!Shell::fileExists(resFile)) {
 			toMake = true;
@@ -486,81 +470,6 @@ namespace XYO::CPPCompilerCommandDriver {
 		return true;
 	};
 
-	namespace CompilerMSVCWorker {
-
-		class CompilerWorkerBool : public Object {
-			public:
-				bool value;
-		};
-
-		TPointer<CompilerWorkerBool> compilerTransferWorkerBool(CompilerWorkerBool &value) {
-			TPointer<CompilerWorkerBool> retV;
-			retV.newMemory();
-			retV->value = value.value;
-			return retV;
-		};
-
-		class CompilerWorkerCppToObj : public Object {
-			public:
-				String cppFile;
-				String objFile;
-				int options;
-				TDynamicArray<String> incPath;
-				TDynamicArray<String> cppDefine;
-				int index;
-				int indexLn;
-				bool echoCmd;
-				CompilerMSVC *super;
-		};
-
-		TPointer<CompilerWorkerCppToObj> compilerTransferWorkerCppToObj(CompilerWorkerCppToObj &value) {
-			TPointer<CompilerWorkerCppToObj> retV;
-			retV.newMemory();
-			retV->cppFile = value.cppFile.value();
-			retV->objFile = value.objFile.value();
-			retV->options = value.options;
-			size_t k;
-			TDynamicArray<String> *source;
-			TDynamicArray<String> *target;
-
-			source = &value.incPath;
-			target = &retV->incPath;
-			for (k = 0; k < source->length(); ++k) {
-				(target->index(k)) = (source->index(k)).value();
-			};
-
-			source = &value.cppDefine;
-			target = &retV->cppDefine;
-			for (k = 0; k < source->length(); ++k) {
-				(target->index(k)) = (source->index(k)).value();
-			};
-
-			retV->index = value.index;
-			retV->indexLn = value.indexLn;
-			retV->echoCmd = value.echoCmd;
-			retV->super = value.super;
-			return retV;
-		};
-
-		TPointer<CompilerWorkerBool> compilerWorkerProcedureCppToObj(CompilerWorkerCppToObj *parameter, TAtomic<bool> &requestToTerminate) {
-			TPointer<CompilerWorkerBool> retV;
-			retV.newMemory();
-			if (parameter) {
-				retV->value = parameter->super->cppToObj(
-				    parameter->options,
-				    parameter->cppFile,
-				    parameter->objFile,
-				    parameter->cppDefine,
-				    parameter->incPath,
-				    parameter->index,
-				    parameter->indexLn,
-				    parameter->echoCmd);
-			};
-			return retV;
-		};
-
-	};
-
 	bool CompilerMSVC::makeCppToLib(
 	    String libName,
 	    String binPath,
@@ -583,15 +492,8 @@ namespace XYO::CPPCompilerCommandDriver {
 	    bool force) {
 		options = filterOptions(options);
 
-		size_t k, m;
 		TDynamicArray<String> objFiles;
-		TPointer<CompilerMSVCWorker::CompilerWorkerCppToObj> parameter;
-		TPointer<CompilerMSVCWorker::CompilerWorkerBool> retVCppToObj;
-		WorkerQueue compileCppToObj;
-		compileCppToObj.setNumberOfThreads(numThreads);
 		String projectName = libName;
-		bool toMakeCppToObj;
-
 		if (options & CompilerOptions::DynamicLibrary) {
 			projectName << ".dll";
 		};
@@ -599,98 +501,13 @@ namespace XYO::CPPCompilerCommandDriver {
 			projectName << ".lib";
 		};
 
-		TDynamicArray<FileTime> cppFilesTime;
-		TDynamicArray<FileTime> incFilesTime;
-		TDynamicArray<FileTime> objFilesTime;
-
-		for (k = 0; k < incFiles.length(); ++k) {
-			incFilesTime[k].getLastWriteTime(incFiles[k]);
-		};
-
-		for (k = 0; k < cppFiles.length(); ++k) {
-			objFiles[k] = objFilename(projectName, cppFiles[k], tmpPath, options, (k + 1), cppFiles.length());
-			cppFilesTime[k].getLastWriteTime(cppFiles[k]);
-			objFilesTime[k].getLastWriteTime(objFiles[k]);
-		};
-
-		for (k = 0; k < cppFiles.length(); ++k) {
-			toMakeCppToObj = false;
-			if (cppFilesTime[k].isChanged(incFilesTime)) {
-				Shell::touchIfExists(cppFiles[k]);
-				toMakeCppToObj = true;
-			};
-			if (!Shell::fileExists(objFiles[k])) {
-				toMakeCppToObj = true;
-			} else {
-				if (objFilesTime[k].compare(cppFilesTime[k]) < 0) {
-					toMakeCppToObj = true;
-				};
-			};
-
-			if (!force) {
-				if (!toMakeCppToObj) {
-					continue;
-				};
-			};
-
-			parameter.newMemory();
-			parameter->super = this;
-			parameter->cppFile = cppFiles[k];
-			parameter->objFile = objFiles[k];
-			parameter->options = options;
-			for (m = 0; m < incPath.length(); ++m) {
-				parameter->incPath[m] = incPath[m];
-			};
-			for (m = 0; m < cppDefine.length(); ++m) {
-				parameter->cppDefine[m] = cppDefine[m];
-			};
-			parameter->index = (k + 1);
-			parameter->indexLn = cppFiles.length();
-			parameter->echoCmd = echoCmd;
-			TWorkerQueue<CompilerMSVCWorker::CompilerWorkerBool,
-			             CompilerMSVCWorker::CompilerWorkerCppToObj,
-			             CompilerMSVCWorker::compilerTransferWorkerBool,
-			             CompilerMSVCWorker::compilerTransferWorkerCppToObj,
-			             CompilerMSVCWorker::compilerWorkerProcedureCppToObj>::add(compileCppToObj, parameter);
-		};
-
-		if (!compileCppToObj.isEmpty()) {
-			if (!compileCppToObj.process()) {
-				return false;
-			};
-			for (k = 0; k < compileCppToObj.length(); ++k) {
-				retVCppToObj = TStaticCast<CompilerMSVCWorker::CompilerWorkerBool *>(compileCppToObj.getReturnValue(k));
-				if (retVCppToObj) {
-					if (!retVCppToObj->value) {
-						return false;
-					};
-					continue;
-				};
-				return false;
-			};
+		if (!CompilerMake::compileSources(this, false, projectName, tmpPath, options, cppDefine, incPath, incFiles, cppFiles, numThreads, echoCmd, force, objFiles)) {
+			return false;
 		};
 
 		if (options & CompilerOptions::DynamicLibrary) {
-			String resObj;
-			for (k = 0; k < rcFiles.length(); ++k) {
-
-				if (Shell::isChanged(rcFiles[k], incFiles)) {
-					Shell::touchIfExists(rcFiles[k]);
-				};
-
-				resObj = objFilename(projectName, rcFiles[k], tmpPath, options, (k + 1), rcFiles.length());
-
-				if (!makeRcToObj(
-				        rcFiles[k],
-				        resObj,
-				        rcDefine,
-				        incPathRC,
-				        echoCmd,
-				        force)) {
-					return false;
-				};
-
-				objFiles.push(resObj);
+			if (!CompilerMake::compileResources(this, projectName, tmpPath, options, incFiles, rcDefine, incPathRC, rcFiles, echoCmd, force, objFiles)) {
+				return false;
 			};
 		};
 
@@ -728,108 +545,16 @@ namespace XYO::CPPCompilerCommandDriver {
 	    bool force) {
 		options = filterOptions(options);
 
-		size_t k, m;
 		TDynamicArray<String> objFiles;
-		TPointer<CompilerMSVCWorker::CompilerWorkerCppToObj> parameter;
-		TPointer<CompilerMSVCWorker::CompilerWorkerBool> retVCppToObj;
-		WorkerQueue compileCppToObj;
-		compileCppToObj.setNumberOfThreads(numThreads);
 		String projectName = exeName;
-		bool toMakeCppToObj;
-
 		projectName << ".exe";
 
-		TDynamicArray<FileTime> cppFilesTime;
-		TDynamicArray<FileTime> incFilesTime;
-		TDynamicArray<FileTime> objFilesTime;
-
-		for (k = 0; k < incFiles.length(); ++k) {
-			incFilesTime[k].getLastWriteTime(incFiles[k]);
+		if (!CompilerMake::compileSources(this, false, projectName, tmpPath, options, cppDefine, incPath, incFiles, cppFiles, numThreads, echoCmd, force, objFiles)) {
+			return false;
 		};
 
-		for (k = 0; k < cppFiles.length(); ++k) {
-			objFiles[k] = objFilename(projectName, cppFiles[k], tmpPath, options, (k + 1), cppFiles.length());
-			cppFilesTime[k].getLastWriteTime(cppFiles[k]);
-			objFilesTime[k].getLastWriteTime(objFiles[k]);
-		};
-
-		for (k = 0; k < cppFiles.length(); ++k) {
-			toMakeCppToObj = false;
-			if (cppFilesTime[k].isChanged(incFilesTime)) {
-				Shell::touchIfExists(cppFiles[k]);
-				toMakeCppToObj = true;
-			};
-			if (!Shell::fileExists(objFiles[k])) {
-				toMakeCppToObj = true;
-			} else {
-				if (objFilesTime[k].compare(cppFilesTime[k]) < 0) {
-					toMakeCppToObj = true;
-				};
-			};
-
-			if (!force) {
-				if (!toMakeCppToObj) {
-					continue;
-				};
-			};
-
-			parameter.newMemory();
-			parameter->super = this;
-			parameter->cppFile = cppFiles[k];
-			parameter->objFile = objFiles[k];
-			parameter->options = options;
-			for (m = 0; m < incPath.length(); ++m) {
-				parameter->incPath[m] = incPath[m];
-			};
-			for (m = 0; m < cppDefine.length(); ++m) {
-				parameter->cppDefine[m] = cppDefine[m];
-			};
-			parameter->index = (k + 1);
-			parameter->indexLn = cppFiles.length();
-			parameter->echoCmd = echoCmd;
-			TWorkerQueue<CompilerMSVCWorker::CompilerWorkerBool,
-			             CompilerMSVCWorker::CompilerWorkerCppToObj,
-			             CompilerMSVCWorker::compilerTransferWorkerBool,
-			             CompilerMSVCWorker::compilerTransferWorkerCppToObj,
-			             CompilerMSVCWorker::compilerWorkerProcedureCppToObj>::add(compileCppToObj, parameter);
-		};
-
-		if (!compileCppToObj.isEmpty()) {
-			if (!compileCppToObj.process()) {
-				return false;
-			};
-			for (k = 0; k < compileCppToObj.length(); ++k) {
-				retVCppToObj = TStaticCast<CompilerMSVCWorker::CompilerWorkerBool *>(compileCppToObj.getReturnValue(k));
-				if (retVCppToObj) {
-					if (!retVCppToObj->value) {
-						return false;
-					};
-					continue;
-				};
-				return false;
-			};
-		};
-
-		String resObj;
-		for (k = 0; k < rcFiles.length(); ++k) {
-
-			if (Shell::isChanged(rcFiles[k], incFiles)) {
-				Shell::touchIfExists(rcFiles[k]);
-			};
-
-			resObj = objFilename(projectName, rcFiles[k], tmpPath, options, (k + 1), rcFiles.length());
-
-			if (!makeRcToObj(
-			        rcFiles[k],
-			        resObj,
-			        rcDefine,
-			        incPathRC,
-			        echoCmd,
-			        force)) {
-				return false;
-			};
-
-			objFiles.push(resObj);
+		if (!CompilerMake::compileResources(this, projectName, tmpPath, options, incFiles, rcDefine, incPathRC, rcFiles, echoCmd, force, objFiles)) {
+			return false;
 		};
 
 		return makeObjToExe(
@@ -853,105 +578,18 @@ namespace XYO::CPPCompilerCommandDriver {
 	    int index,
 	    int indexLn,
 	    bool echoCmd) {
-		String cmd;
-		String content;
-
-		int k;
-		options = filterOptions(options);
-		if (!Shell::mkdirFilePath(objFile)) {
-			return false;
-		};
-
-		cFile = cFile.replace("/", "\\");
-		objFile = objFile.replace("/", "\\");
-
-		String cc = Shell::getEnv("CC");
-		if (cc.length() == 0) {
-			cc = "cl.exe";
-		};
-
-		cmd = cc;
-		content = " /nologo";
-
-		if (options & CompilerOptions::Release) {
-			content += " /DXYO_PLATFORM_COMPILE_RELEASE";
-			if (options & CompilerOptions::CRTDynamic) {
-				content += " /MD";
-				content += " /DXYO_PLATFORM_COMPILE_CRT_DYNAMIC";
-			};
-			if (options & CompilerOptions::CRTStatic) {
-				content += " /MT";
-				content += " /DXYO_PLATFORM_COMPILE_CRT_STATIC";
-			};
-			content += " /O2 /Oi /Oy /Gy /Gd /EHsc /GR /TC /c";
-		};
-		if (options & CompilerOptions::Debug) {
-			content += " /DXYO_PLATFORM_COMPILE_DEBUG";
-			if (options & CompilerOptions::CRTDynamic) {
-				content += " /MDd";
-				content += " /DXYO_PLATFORM_COMPILE_CRT_DYNAMIC";
-			};
-			if (options & CompilerOptions::CRTStatic) {
-				content += " /MTd";
-				content += " /DXYO_PLATFORM_COMPILE_CRT_STATIC";
-			};
-			content += " /Zi /EHsc /GR /TC /c";
-		};
-		if (options & CompilerOptions::StaticLibrary) {
-			content += " /DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
-		};
-		if (options & CompilerOptions::DynamicLibrary) {
-			if (options & CompilerOptions::DynamicLibraryXStatic) {
-				content += " /DXYO_PLATFORM_COMPILE_STATIC_LIBRARY";
-			} else {
-				content += " /DXYO_PLATFORM_COMPILE_DYNAMIC_LIBRARY";
-			};
-		};
-
-		for (k = 0; k < incPath.length(); ++k) {
-			content << " /I\"" << incPath[k].replace("/", "\\") << "\"";
-		};
-		for (k = 0; k < cDefine.length(); ++k) {
-			content << " /D\"" << cDefine[k] << "\"";
-		};
-		if (options & CompilerOptions::Debug) {
-			content << " /Fd\"" << objFile.replace(".obj", ".pdb") << "\"";
-		};
-		if (is32Bit) {
-			content << " /arch:SSE2";
-		};
-		content << " /Fo\"" << objFile << "\"";
-		content << " \"" << cFile << "\"";
-
-		String cmdFile = objFile.replace(".c.obj", ".c2obj");
-		Shell::filePutContents(cmdFile, content);
-		cmd << " @" << cmdFile;
-
-		if (echoCmd) {
-			printf("[%d/%d] %s\n", index, indexLn, cmd.value());
-		};
-		return (Shell::system(cmd) == 0);
-	};
-
-	namespace CompilerMSVCWorker {
-
-		TPointer<CompilerWorkerBool> compilerWorkerProcedureCToObj(CompilerWorkerCppToObj *parameter, TAtomic<bool> &requestToTerminate) {
-			TPointer<CompilerWorkerBool> retV;
-			retV.newMemory();
-			if (parameter) {
-				retV->value = parameter->super->cToObj(
-				    parameter->cppFile,
-				    parameter->objFile,
-				    parameter->options,
-				    parameter->cppDefine,
-				    parameter->incPath,
-				    parameter->index,
-				    parameter->indexLn,
-				    parameter->echoCmd);
-			};
-			return retV;
-		};
-
+		return compilerMSVCToObj(
+		    compilerMSVCCommand("CC"),
+		    " /TC",
+		    filterOptions(options),
+		    cFile,
+		    objFile,
+		    cDefine,
+		    incPath,
+		    index,
+		    indexLn,
+		    is32Bit,
+		    echoCmd);
 	};
 
 	bool CompilerMSVC::makeCToLib(
@@ -976,15 +614,8 @@ namespace XYO::CPPCompilerCommandDriver {
 	    bool force) {
 		options = filterOptions(options);
 
-		size_t k, m;
 		TDynamicArray<String> objFiles;
-		TPointer<CompilerMSVCWorker::CompilerWorkerCppToObj> parameter;
-		TPointer<CompilerMSVCWorker::CompilerWorkerBool> retVCToObj;
-		WorkerQueue compileCToObj;
-		compileCToObj.setNumberOfThreads(numThreads);
 		String projectName = libName;
-		bool toMakeCToObj;
-
 		if (options & CompilerOptions::DynamicLibrary) {
 			projectName << ".dll";
 		};
@@ -992,98 +623,13 @@ namespace XYO::CPPCompilerCommandDriver {
 			projectName << ".lib";
 		};
 
-		TDynamicArray<FileTime> cFilesTime;
-		TDynamicArray<FileTime> incFilesTime;
-		TDynamicArray<FileTime> objFilesTime;
-
-		for (k = 0; k < incFiles.length(); ++k) {
-			incFilesTime[k].getLastWriteTime(incFiles[k]);
-		};
-
-		for (k = 0; k < cFiles.length(); ++k) {
-			objFiles[k] = objFilename(projectName, cFiles[k], tmpPath, options, (k + 1), cFiles.length());
-			cFilesTime[k].getLastWriteTime(cFiles[k]);
-			objFilesTime[k].getLastWriteTime(objFiles[k]);
-		};
-
-		for (k = 0; k < cFiles.length(); ++k) {
-			toMakeCToObj = false;
-			if (cFilesTime[k].isChanged(incFilesTime)) {
-				Shell::touchIfExists(cFiles[k]);
-				toMakeCToObj = true;
-			};
-			if (!Shell::fileExists(objFiles[k])) {
-				toMakeCToObj = true;
-			} else {
-				if (objFilesTime[k].compare(cFilesTime[k]) < 0) {
-					toMakeCToObj = true;
-				};
-			};
-
-			if (!force) {
-				if (!toMakeCToObj) {
-					continue;
-				};
-			};
-
-			parameter.newMemory();
-			parameter->super = this;
-			parameter->cppFile = cFiles[k];
-			parameter->objFile = objFiles[k];
-			parameter->options = options;
-			for (m = 0; m < incPath.length(); ++m) {
-				parameter->incPath[m] = incPath[m];
-			};
-			for (m = 0; m < cDefine.length(); ++m) {
-				parameter->cppDefine[m] = cDefine[m];
-			};
-			parameter->index = (k + 1);
-			parameter->indexLn = cFiles.length();
-			parameter->echoCmd = echoCmd;
-			TWorkerQueue<CompilerMSVCWorker::CompilerWorkerBool,
-			             CompilerMSVCWorker::CompilerWorkerCppToObj,
-			             CompilerMSVCWorker::compilerTransferWorkerBool,
-			             CompilerMSVCWorker::compilerTransferWorkerCppToObj,
-			             CompilerMSVCWorker::compilerWorkerProcedureCToObj>::add(compileCToObj, parameter);
-		};
-
-		if (!compileCToObj.isEmpty()) {
-			if (!compileCToObj.process()) {
-				return false;
-			};
-			for (k = 0; k < compileCToObj.length(); ++k) {
-				retVCToObj = TStaticCast<CompilerMSVCWorker::CompilerWorkerBool *>(compileCToObj.getReturnValue(k));
-				if (retVCToObj) {
-					if (!retVCToObj->value) {
-						return false;
-					};
-					continue;
-				};
-				return false;
-			};
+		if (!CompilerMake::compileSources(this, true, projectName, tmpPath, options, cDefine, incPath, incFiles, cFiles, numThreads, echoCmd, force, objFiles)) {
+			return false;
 		};
 
 		if (options & CompilerOptions::DynamicLibrary) {
-			String resObj;
-			for (k = 0; k < rcFiles.length(); ++k) {
-
-				if (Shell::isChanged(rcFiles[k], incFiles)) {
-					Shell::touchIfExists(rcFiles[k]);
-				};
-
-				resObj = objFilename(projectName, rcFiles[k], tmpPath, options, (k + 1), rcFiles.length());
-
-				if (!makeRcToObj(
-				        rcFiles[k],
-				        resObj,
-				        rcDefine,
-				        incPathRC,
-				        echoCmd,
-				        force)) {
-					return false;
-				};
-
-				objFiles.push(resObj);
+			if (!CompilerMake::compileResources(this, projectName, tmpPath, options, incFiles, rcDefine, incPathRC, rcFiles, echoCmd, force, objFiles)) {
+				return false;
 			};
 		};
 
@@ -1121,108 +667,16 @@ namespace XYO::CPPCompilerCommandDriver {
 	    bool force) {
 		options = filterOptions(options);
 
-		size_t k, m;
 		TDynamicArray<String> objFiles;
-		TPointer<CompilerMSVCWorker::CompilerWorkerCppToObj> parameter;
-		TPointer<CompilerMSVCWorker::CompilerWorkerBool> retVCToObj;
-		WorkerQueue compileCToObj;
-		compileCToObj.setNumberOfThreads(numThreads);
 		String projectName = exeName;
-		bool toMakeCToObj;
-
 		projectName << ".exe";
 
-		TDynamicArray<FileTime> cFilesTime;
-		TDynamicArray<FileTime> incFilesTime;
-		TDynamicArray<FileTime> objFilesTime;
-
-		for (k = 0; k < incFiles.length(); ++k) {
-			incFilesTime[k].getLastWriteTime(incFiles[k]);
+		if (!CompilerMake::compileSources(this, true, projectName, tmpPath, options, cDefine, incPath, incFiles, cFiles, numThreads, echoCmd, force, objFiles)) {
+			return false;
 		};
 
-		for (k = 0; k < cFiles.length(); ++k) {
-			objFiles[k] = objFilename(projectName, cFiles[k], tmpPath, options, (k + 1), cFiles.length());
-			cFilesTime[k].getLastWriteTime(cFiles[k]);
-			objFilesTime[k].getLastWriteTime(objFiles[k]);
-		};
-
-		for (k = 0; k < cFiles.length(); ++k) {
-			toMakeCToObj = false;
-			if (cFilesTime[k].isChanged(incFilesTime)) {
-				Shell::touchIfExists(cFiles[k]);
-				toMakeCToObj = true;
-			};
-			if (!Shell::fileExists(objFiles[k])) {
-				toMakeCToObj = true;
-			} else {
-				if (objFilesTime[k].compare(cFilesTime[k]) < 0) {
-					toMakeCToObj = true;
-				};
-			};
-
-			if (!force) {
-				if (!toMakeCToObj) {
-					continue;
-				};
-			};
-
-			parameter.newMemory();
-			parameter->super = this;
-			parameter->cppFile = cFiles[k];
-			parameter->objFile = objFiles[k];
-			parameter->options = options;
-			for (m = 0; m < incPath.length(); ++m) {
-				parameter->incPath[m] = incPath[m];
-			};
-			for (m = 0; m < cDefine.length(); ++m) {
-				parameter->cppDefine[m] = cDefine[m];
-			};
-			parameter->index = (k + 1);
-			parameter->indexLn = cFiles.length();
-			parameter->echoCmd = echoCmd;
-			TWorkerQueue<CompilerMSVCWorker::CompilerWorkerBool,
-			             CompilerMSVCWorker::CompilerWorkerCppToObj,
-			             CompilerMSVCWorker::compilerTransferWorkerBool,
-			             CompilerMSVCWorker::compilerTransferWorkerCppToObj,
-			             CompilerMSVCWorker::compilerWorkerProcedureCToObj>::add(compileCToObj, parameter);
-		};
-
-		if (!compileCToObj.isEmpty()) {
-			if (!compileCToObj.process()) {
-				return false;
-			};
-			for (k = 0; k < compileCToObj.length(); ++k) {
-				retVCToObj = TStaticCast<CompilerMSVCWorker::CompilerWorkerBool *>(compileCToObj.getReturnValue(k));
-				if (retVCToObj) {
-					if (!retVCToObj->value) {
-						return false;
-					};
-					continue;
-				};
-				return false;
-			};
-		};
-
-		String resObj;
-		for (k = 0; k < rcFiles.length(); ++k) {
-
-			if (Shell::isChanged(rcFiles[k], incFiles)) {
-				Shell::touchIfExists(rcFiles[k]);
-			};
-
-			resObj = objFilename(projectName, rcFiles[k], tmpPath, options, (k + 1), rcFiles.length());
-
-			if (!makeRcToObj(
-			        rcFiles[k],
-			        resObj,
-			        rcDefine,
-			        incPathRC,
-			        echoCmd,
-			        force)) {
-				return false;
-			};
-
-			objFiles.push(resObj);
+		if (!CompilerMake::compileResources(this, projectName, tmpPath, options, incFiles, rcDefine, incPathRC, rcFiles, echoCmd, force, objFiles)) {
+			return false;
 		};
 
 		return makeObjToExe(
